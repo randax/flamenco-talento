@@ -26,14 +26,27 @@
  * sync tags, which are exclusively driven by the live SSE connection.
  *
  * KNOWN GAP: `sanityFetch`'s `cacheTag()`/`cacheLife()` calls (inside
- * next-sanity, called from sanity/lib/live.ts) throw unless `cacheComponents:
- * true` is set in next.config.ts — it isn't, here. That's a pre-existing gap
- * from before this task (not introduced by this route) that's currently
- * masked because the placeholder Sanity project id makes `client.fetch`
- * throw first, which every call site catches. Once a real Sanity project is
- * connected, either enable `cacheComponents` (a repo-wide behavioral change
- * — needs its own verification pass) or this tagging/revalidation path will
- * throw at request time. Flagging for follow-up, not fixing here.
+ * next-sanity, called from sanity/lib/live.ts) throw at request time unless
+ * BOTH of the following hold — neither does today:
+ *   1. `cacheComponents: true` is set in next.config.ts (`cacheTag()` throws
+ *      "only available with the `cacheComponents` config" without it), AND
+ *   2. every `sanityFetch` call site runs inside a `'use cache'`-annotated
+ *      boundary — `cacheTag()` also throws "can only be called inside a
+ *      \"use cache\" function" when invoked from a plain request-scoped
+ *      render (see next/dist/server/use-cache/cache-tag.js). That means the
+ *      catch-all page, the [lang] layout, and the nyheter list + detail
+ *      pages must be restructured per next-sanity 13's documented pattern:
+ *      resolve dynamic values (params, cookies, draftMode) outside the
+ *      boundary, then pass them into a `'use cache'` component that calls
+ *      `sanityFetch` — see the CachedPage example in
+ *      node_modules/next-sanity/dist/live/conditions/next-js/index.d.ts.
+ * This is a pre-existing gap from before this task (not introduced by this
+ * route), currently masked because the placeholder Sanity project id makes
+ * `client.fetch` throw first, which every call site catches. Once a real
+ * Sanity project is connected, both halves must land together (a repo-wide
+ * behavioral change needing its own verification pass) or this
+ * tagging/revalidation path will throw. Flagging for follow-up, not fixing
+ * here.
  */
 import { revalidateTag } from "next/cache";
 import type { NextRequest } from "next/server";
@@ -43,9 +56,13 @@ import { typeTag } from "@/sanity/lib/live";
 
 export async function POST(req: NextRequest) {
   try {
+    // Third arg disables parseBody's built-in ~3s "wait for Content Lake
+    // eventual consistency" delay — this route never re-queries Sanity (it
+    // only revalidates a cache tag), so the wait would be pure latency.
     const { isValidSignature, body } = await parseBody<{ _type?: string }>(
       req,
       process.env.SANITY_REVALIDATE_SECRET,
+      false,
     );
 
     if (!isValidSignature) {
