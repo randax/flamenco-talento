@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@portabletext/react": "^6.2.0",
@@ -15,13 +16,20 @@
     "@sanity/icons": "^3.8.0",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^6.4.0",
+    "@tanstack/react-query": "^5.101.2",
+    "@trpc/client": "^11.18.0",
+    "@trpc/react-query": "^11.18.0",
+    "@trpc/server": "^11.18.0",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
     "next-sanity": "^13.1.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "sanity": "^6.4.0"
+    "resend": "^6.17.2",
+    "sanity": "^6.4.0",
+    "superjson": "^2.2.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -31,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

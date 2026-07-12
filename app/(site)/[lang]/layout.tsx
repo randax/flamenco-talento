@@ -5,6 +5,7 @@ import { sanityFetch, SanityLive } from "@/sanity/lib/live";
 import { SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { TRPCProvider } from "@/lib/trpc/Provider";
 import type { SiteSettings } from "@/components/blocks/types";
 
 export function generateStaticParams() {
@@ -51,9 +52,11 @@ export default async function LangLayout({
 
   return (
     <div className="min-h-screen bg-flamenco-dark text-flamenco-light font-sans selection:bg-flamenco-red selection:text-white">
-      <Header settings={settings} lang={lang} />
-      {children}
-      <Footer settings={settings} />
+      <TRPCProvider>
+        <Header settings={settings} lang={lang} />
+        {children}
+        <Footer settings={settings} />
+      </TRPCProvider>
       <SanityLive />
     </div>
   );

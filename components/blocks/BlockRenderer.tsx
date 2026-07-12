@@ -11,11 +11,33 @@ import { Pris } from "@/components/blocks/Pris";
 import { Gallery } from "@/components/blocks/Gallery";
 import { Nyheter } from "@/components/blocks/Nyheter";
 import { SignupSection } from "@/components/blocks/SignupSection";
-import type { NewsPost, NyheterBlock, PageBlock } from "@/components/blocks/types";
+import type {
+  NewsPost,
+  NyheterBlock,
+  PageBlock,
+  PrisBlock,
+  TimeplanBlock,
+} from "@/components/blocks/types";
 
 export type { PageBlock } from "@/components/blocks/types";
 
 const DEFAULT_NEWS_COUNT = 3;
+
+function deriveInterestOptions(blocks: PageBlock[]): string[] {
+  const timeplan = blocks.find(
+    (block): block is TimeplanBlock => block._type === "timeplanBlock",
+  );
+  const pris = blocks.find((block): block is PrisBlock => block._type === "prisBlock");
+
+  const classNames = (timeplan?.classes ?? [])
+    .map((c) => c.name)
+    .filter((name): name is string => Boolean(name));
+  const planTitles = (pris?.plans ?? [])
+    .map((p) => p.title)
+    .filter((title): title is string => Boolean(title));
+
+  return Array.from(new Set([...classNames, ...planTitles]));
+}
 
 async function fetchLatestNews(lang: Lang, count: number): Promise<NewsPost[]> {
   try {
@@ -51,6 +73,11 @@ export async function BlockRenderer({
       }),
   );
 
+  // The signup form's "interest" select is populated from this same page's
+  // own class names (timeplanBlock) and plan titles (prisBlock), so editors
+  // don't maintain the list twice. Empty if the page has neither block.
+  const interestOptions = deriveInterestOptions(blocks);
+
   return (
     <>
       {blocks.map((block) => {
@@ -79,7 +106,14 @@ export async function BlockRenderer({
               />
             );
           case "signupFormBlock":
-            return <SignupSection key={block._key} block={block} lang={lang} />;
+            return (
+              <SignupSection
+                key={block._key}
+                block={block}
+                lang={lang}
+                interestOptions={interestOptions}
+              />
+            );
           default: {
             if (process.env.NODE_ENV !== "production") {
               console.warn(
