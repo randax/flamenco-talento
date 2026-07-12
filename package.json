@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@sanity/document-internationalization": "^6.2.17",
+    "@sanity/icons": "^3.8.0",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^6.4.0",
     "framer-motion": "^12.42.2",
