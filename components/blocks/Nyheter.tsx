@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { motion } from "@/components/site/Motion";
 import { NewsCard } from "@/components/blocks/NewsCard";
+import { splitFeaturedNews } from "@/lib/news";
 import type { Lang } from "@/lib/i18n";
 import type { NyheterBlock, NewsPost } from "@/components/blocks/types";
 
@@ -17,8 +18,7 @@ export function Nyheter({
   posts: NewsPost[];
   lang: Lang;
 }) {
-  const featured = posts[0];
-  const rest = posts.slice(1);
+  const { featured, rest } = splitFeaturedNews(posts);
 
   return (
     <section id="nyheter" className="py-24 md:py-32 relative">

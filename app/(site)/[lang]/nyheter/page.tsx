@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { dict } from "@/lib/dictionary";
-import { isLang, LANGS, type Lang } from "@/lib/i18n";
+import { isLang, LANGS, OG_LOCALE, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { NEWS_LIST_QUERY } from "@/sanity/lib/queries";
 import { NewsCard } from "@/components/blocks/NewsCard";
+import { splitFeaturedNews } from "@/lib/news";
 import type { NewsPost } from "@/components/blocks/types";
 
 // The /nyheter slug is identical in both locales, so alternates are a plain
@@ -32,7 +33,7 @@ export async function generateMetadata({
       title,
       url,
       siteName: "Flamenco Talento",
-      locale: lang === "no" ? "nb_NO" : "en_GB",
+      locale: OG_LOCALE[lang],
       type: "website",
     },
   };
@@ -63,8 +64,7 @@ export default async function NewsListPage({
 
   const t = dict(lang);
   const posts = await fetchNewsList(lang);
-  const featured = posts[0];
-  const rest = posts.slice(1);
+  const { featured, rest } = splitFeaturedNews(posts);
 
   return (
     <main>
