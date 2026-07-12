@@ -47,7 +47,7 @@ function detectLang(acceptLanguage: string | null): Lang {
   return englishQ > norwegianQ ? "en" : DEFAULT_LANG;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (shouldSkip(pathname)) {
