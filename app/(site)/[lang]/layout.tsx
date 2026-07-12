@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LANGS, isLang } from "@/lib/i18n";
+import { SanityLive } from "@/sanity/lib/live";
 
 export function generateStaticParams() {
   return LANGS.map((lang) => ({ lang }));
@@ -32,6 +33,7 @@ export default async function LangLayout({
   return (
     <div className="min-h-screen bg-flamenco-dark text-flamenco-light font-sans selection:bg-flamenco-red selection:text-white">
       {children}
+      <SanityLive />
     </div>
   );
 }
