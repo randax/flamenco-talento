@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LANGS, isLang } from "@/lib/i18n";
-import { SanityLive } from "@/sanity/lib/live";
+import { isLang, LANGS } from "@/lib/i18n";
+import { sanityFetch, SanityLive } from "@/sanity/lib/live";
+import { SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
+import { Header } from "@/components/site/Header";
+import { Footer } from "@/components/site/Footer";
+import type { SiteSettings } from "@/components/blocks/types";
 
 export function generateStaticParams() {
   return LANGS.map((lang) => ({ lang }));
@@ -17,6 +21,19 @@ export async function generateMetadata(): Promise<Metadata> {
   return {};
 }
 
+async function fetchSiteSettings(lang: string): Promise<SiteSettings | null> {
+  try {
+    const { data } = (await sanityFetch({
+      query: SITE_SETTINGS_QUERY,
+      params: { lang },
+    })) as { data: SiteSettings | null };
+    return data;
+  } catch {
+    // The real Sanity project isn't provisioned yet; keep the build green.
+    return null;
+  }
+}
+
 export default async function LangLayout({
   children,
   params,
@@ -30,9 +47,13 @@ export default async function LangLayout({
     notFound();
   }
 
+  const settings = await fetchSiteSettings(lang);
+
   return (
     <div className="min-h-screen bg-flamenco-dark text-flamenco-light font-sans selection:bg-flamenco-red selection:text-white">
+      <Header settings={settings} lang={lang} />
       {children}
+      <Footer settings={settings} />
       <SanityLive />
     </div>
   );

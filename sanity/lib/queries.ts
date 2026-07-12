@@ -5,6 +5,8 @@ import { defineQuery } from "next-sanity";
 const BLOCKS_PROJECTION = /* groq */ `
   blocks[]{
     ...,
+    _type == "heroBlock" => { "videoUrl": video.asset->url },
+    _type == "aboutBlock" => { image{ ..., "dimensions": asset->metadata.dimensions } },
     _type == "pedagogBlock" => { teacher-> },
     _type == "timeplanBlock" => { classes[]-> },
     _type == "prisBlock" => { plans[]-> },
