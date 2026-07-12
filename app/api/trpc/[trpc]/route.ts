@@ -39,12 +39,20 @@ async function sendEmail(submission: Submission): Promise<unknown> {
     `Sendt: ${submission.createdAt}`,
   ].filter((line): line is string => line !== null);
 
-  return client.emails.send({
+  // Resend's SDK resolves with `{ data, error }` instead of throwing on API
+  // errors (e.g. the test `onboarding@resend.dev` sender is restricted to the
+  // account owner's own address until a domain is verified). Surface that as a
+  // throw so the caller's catch logs it rather than swallowing it silently.
+  const { data, error } = await client.emails.send({
     from: "Flamenco Talento <onboarding@resend.dev>",
     to,
     subject: `Ny påmelding: ${submission.interest}`,
     text: lines.join("\n"),
   });
+  if (error) {
+    throw new Error(`Resend error: ${error.name} — ${error.message}`);
+  }
+  return data;
 }
 
 function resolveIp(request: Request): string {
