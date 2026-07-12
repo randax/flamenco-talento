@@ -32,19 +32,21 @@ export async function generateStaticParams() {
   }
 }
 
-async function fetchPage(
+// Cached data fetch shared by the page body. Dynamic values (params) are
+// resolved by the caller and passed in as primitives so this can live inside a
+// `'use cache'` boundary — required because `sanityFetch` calls
+// `cacheTag()`/`cacheLife()` internally (see next.config.ts cacheComponents).
+async function getPage(
   lang: string,
   joinedSlug: string | undefined,
 ): Promise<PageData | null> {
-  try {
-    return await client.fetch<PageData | null>(
-      joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
-      joinedSlug ? { slug: joinedSlug, lang } : { lang },
-    );
-  } catch {
-    // The real Sanity project isn't provisioned yet; keep metadata build-safe.
-    return null;
-  }
+  "use cache";
+  const { data } = (await sanityFetch({
+    query: joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
+    params: joinedSlug ? { slug: joinedSlug, lang } : { lang },
+    tags: [typeTag("page")],
+  })) as { data: PageData | null };
+  return data;
 }
 
 // Page slugs are assumed identical across locales, so hreflang alternates are a
@@ -58,7 +60,7 @@ export async function generateMetadata({
   if (!isLang(lang) || slug?.[0] === "nyheter") return {};
 
   const joinedSlug = slug?.join("/");
-  const page = await fetchPage(lang, joinedSlug);
+  const page = await getPage(lang, joinedSlug);
   if (!page) return {};
 
   const path = joinedSlug ? `/${joinedSlug}` : "";
@@ -102,12 +104,7 @@ export default async function CatchAllPage({
   }
 
   const joinedSlug = slug?.join("/");
-
-  const { data: page } = (await sanityFetch({
-    query: joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
-    params: joinedSlug ? { slug: joinedSlug, lang } : { lang },
-    tags: [typeTag("page")],
-  })) as { data: PageData | null };
+  const page = await getPage(lang, joinedSlug);
 
   if (!page) {
     notFound();

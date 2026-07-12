@@ -4,6 +4,13 @@ import { stegaClean } from "next-sanity";
 import { Logo } from "@/components/site/Logo";
 import type { SiteSettings } from "@/components/blocks/types";
 
+// Evaluated once at module load (build time), not during render. Reading the
+// current time *inside* a Server Component render is disallowed under Cache
+// Components (next.config.ts) because the value would be frozen into the static
+// page; module scope sidesteps that. The copyright year is refreshed on each
+// deploy, which is sufficient for a footer notice.
+const CURRENT_YEAR = new Date().getFullYear();
+
 // lucide-react v1.24 removed the Facebook/Instagram brand glyphs, so these are
 // inline SVGs copied from an earlier lucide release, styled to match the other
 // (stroke-based, size-driven) icons.
@@ -154,7 +161,7 @@ export function Footer({ settings }: { settings: SiteSettings | null }) {
 
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-flamenco-light/40">
           <p>
-            &copy; {new Date().getFullYear()} {settings?.footerCopyrightName}. Med enerett.
+            &copy; {CURRENT_YEAR} {settings?.footerCopyrightName}. Med enerett.
           </p>
           <p>Designet med lidenskap.</p>
         </div>

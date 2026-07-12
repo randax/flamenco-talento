@@ -22,18 +22,17 @@ export async function generateMetadata(): Promise<Metadata> {
   return {};
 }
 
+// `'use cache'` boundary: `sanityFetch` calls `cacheTag()`/`cacheLife()`
+// internally, which require Cache Components (see next.config.ts). `lang` is a
+// serializable primitive resolved by the caller.
 async function fetchSiteSettings(lang: string): Promise<SiteSettings | null> {
-  try {
-    const { data } = (await sanityFetch({
-      query: SITE_SETTINGS_QUERY,
-      params: { lang },
-      tags: [typeTag("siteSettings")],
-    })) as { data: SiteSettings | null };
-    return data;
-  } catch {
-    // The real Sanity project isn't provisioned yet; keep the build green.
-    return null;
-  }
+  "use cache";
+  const { data } = (await sanityFetch({
+    query: SITE_SETTINGS_QUERY,
+    params: { lang },
+    tags: [typeTag("siteSettings")],
+  })) as { data: SiteSettings | null };
+  return data;
 }
 
 export default async function LangLayout({

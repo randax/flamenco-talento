@@ -38,18 +38,16 @@ export async function generateMetadata({
   };
 }
 
+// `'use cache'` boundary: `sanityFetch` calls `cacheTag()`/`cacheLife()`
+// internally, which require Cache Components (see next.config.ts).
 async function fetchNewsList(lang: Lang): Promise<NewsPost[]> {
-  try {
-    const { data } = (await sanityFetch({
-      query: NEWS_LIST_QUERY,
-      params: { lang },
-      tags: [typeTag("newsPost")],
-    })) as { data: NewsPost[] | null };
-    return data ?? [];
-  } catch {
-    // The real Sanity project isn't provisioned yet; keep the build green.
-    return [];
-  }
+  "use cache";
+  const { data } = (await sanityFetch({
+    query: NEWS_LIST_QUERY,
+    params: { lang },
+    tags: [typeTag("newsPost")],
+  })) as { data: NewsPost[] | null };
+  return data ?? [];
 }
 
 export default async function NewsListPage({

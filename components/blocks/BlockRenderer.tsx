@@ -1,6 +1,6 @@
 import React from "react";
 import type { Lang } from "@/lib/i18n";
-import { sanityFetch } from "@/sanity/lib/live";
+import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { LATEST_NEWS_QUERY } from "@/sanity/lib/queries";
 import { Hero } from "@/components/blocks/Hero";
 import { Marquee } from "@/components/blocks/Marquee";
@@ -39,17 +39,17 @@ function deriveInterestOptions(blocks: PageBlock[]): string[] {
   return Array.from(new Set([...classNames, ...planTitles]));
 }
 
+// `'use cache'` boundary: `sanityFetch` calls `cacheTag()`/`cacheLife()`
+// internally, which require Cache Components (see next.config.ts). Args are
+// serializable primitives resolved by the caller.
 async function fetchLatestNews(lang: Lang, count: number): Promise<NewsPost[]> {
-  try {
-    const { data } = (await sanityFetch({
-      query: LATEST_NEWS_QUERY,
-      params: { lang, count },
-    })) as { data: NewsPost[] | null };
-    return data ?? [];
-  } catch {
-    // The real Sanity project isn't provisioned yet; keep the build green.
-    return [];
-  }
+  "use cache";
+  const { data } = (await sanityFetch({
+    query: LATEST_NEWS_QUERY,
+    params: { lang, count },
+    tags: [typeTag("newsPost")],
+  })) as { data: NewsPost[] | null };
+  return data ?? [];
 }
 
 export async function BlockRenderer({

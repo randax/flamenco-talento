@@ -5,23 +5,12 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { dict } from "@/lib/dictionary";
 import type { Lang } from "@/lib/i18n";
+import { formatNewsDate } from "@/lib/newsDate";
 import type { NewsPost } from "@/components/blocks/types";
 
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-export function formatNewsDate(date: string | null | undefined, lang: Lang) {
-  if (!date) return "";
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return "";
-  const formatted = new Intl.DateTimeFormat(lang === "no" ? "nb-NO" : "en-GB", {
-    day: "numeric",
-    month: "long",
-  }).format(parsed);
-  // Capitalize the month word to match the design.
-  return formatted.replace(/\p{L}+/u, (word) => capitalize(word));
-}
+// Re-exported for existing importers; the implementation lives in a plain
+// (non-client) module so server components can use it too.
+export { formatNewsDate };
 
 // Shared news card, extracted verbatim from the Nyheter block so the block and
 // the /nyheter list page render identical markup. `variant` picks the featured

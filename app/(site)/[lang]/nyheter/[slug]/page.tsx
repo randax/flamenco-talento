@@ -13,7 +13,7 @@ import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { urlFor } from "@/sanity/lib/image";
 import { NEWS_POST_QUERY, NEWS_SLUGS_QUERY, TRANSLATIONS_QUERY } from "@/sanity/lib/queries";
 import { PortableText } from "@/components/site/PortableText";
-import { formatNewsDate } from "@/components/blocks/NewsCard";
+import { formatNewsDate } from "@/lib/newsDate";
 import type { ImageDimensions } from "@/components/blocks/types";
 
 type NewsPostDetail = {
@@ -44,17 +44,26 @@ export async function generateStaticParams() {
   }
 }
 
+// `'use cache'` boundary (shared by generateMetadata + the page body):
+// `sanityFetch` calls `cacheTag()`/`cacheLife()` internally, which require
+// Cache Components (see next.config.ts). Args are serializable primitives.
 async function fetchPost(slug: string, lang: Lang): Promise<NewsPostDetail | null> {
-  try {
-    const { data } = (await sanityFetch({
-      query: NEWS_POST_QUERY,
-      params: { slug, lang },
-      tags: [typeTag("newsPost")],
-    })) as { data: NewsPostDetail | null };
-    return data;
-  } catch {
-    return null;
-  }
+  "use cache";
+  const { data } = (await sanityFetch({
+    query: NEWS_POST_QUERY,
+    params: { slug, lang },
+    tags: [typeTag("newsPost")],
+  })) as { data: NewsPostDetail | null };
+  return data;
+}
+
+// Cached hreflang lookup for generateMetadata. Uses the plain client, so it
+// must live in a `'use cache'` boundary to keep generateMetadata static under
+// Cache Components (otherwise the uncached fetch makes metadata dynamic while
+// the rest of the route is static, which Next rejects).
+async function fetchTranslations(id: string): Promise<Translation[]> {
+  "use cache";
+  return (await client.fetch<Translation[]>(TRANSLATIONS_QUERY, { id })) ?? [];
 }
 
 export async function generateMetadata({
@@ -73,17 +82,10 @@ export async function generateMetadata({
 
   // Map the other-language slug for hreflang alternates via the
   // document-internationalization metadata document.
-  try {
-    const translations = await client.fetch<Translation[]>(TRANSLATIONS_QUERY, {
-      id: post._id,
-    });
-    for (const tr of translations ?? []) {
-      if (tr.language && tr.slug) {
-        languages[tr.language] = absoluteUrl(`/${tr.language}/nyheter/${tr.slug}`);
-      }
+  for (const tr of await fetchTranslations(post._id)) {
+    if (tr.language && tr.slug) {
+      languages[tr.language] = absoluteUrl(`/${tr.language}/nyheter/${tr.slug}`);
     }
-  } catch {
-    // Placeholder project — leave alternates as just the current language.
   }
 
   const title = `${post.title} | Flamenco Talento`;
