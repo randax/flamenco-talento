@@ -4,17 +4,14 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LANGS, type Lang } from "@/lib/i18n";
+import { useAltHref } from "@/components/site/AltHrefContext";
 
-// Swaps the locale prefix on the current path. On pages that know a
-// translated target (e.g. news detail), pass `altHref` per language.
-export function LanguageSwitcher({
-  lang,
-  altHref,
-}: {
-  lang: Lang;
-  altHref?: Partial<Record<Lang, string>>;
-}) {
+// Swaps the locale prefix on the current path. Pages whose translated URL
+// differs from a plain prefix swap (e.g. a news post with per-locale slugs)
+// publish per-language targets via AltHrefContext (SetAltHref); those win.
+export function LanguageSwitcher({ lang }: { lang: Lang }) {
   const pathname = usePathname();
+  const altHref = useAltHref();
 
   const hrefFor = (target: Lang) => {
     if (altHref?.[target]) return altHref[target]!;

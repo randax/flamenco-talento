@@ -6,13 +6,14 @@ import { ChevronLeft } from "lucide-react";
 import type { PortableTextBlock } from "@portabletext/types";
 import type { SanityImageSource } from "@sanity/image-url";
 import { dict } from "@/lib/dictionary";
-import { isLang, type Lang } from "@/lib/i18n";
+import { isLang, OG_LOCALE, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
 import { client } from "@/sanity/lib/client";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { urlFor } from "@/sanity/lib/image";
 import { NEWS_POST_QUERY, NEWS_SLUGS_QUERY, TRANSLATIONS_QUERY } from "@/sanity/lib/queries";
 import { PortableText } from "@/components/site/PortableText";
+import { SetAltHref, type AltHref } from "@/components/site/AltHrefContext";
 import { formatNewsDate } from "@/lib/newsDate";
 import type { ImageDimensions } from "@/components/blocks/types";
 
@@ -99,7 +100,7 @@ export async function generateMetadata({
       description: post.excerpt ?? undefined,
       url,
       siteName: "Flamenco Talento",
-      locale: lang === "no" ? "nb_NO" : "en_GB",
+      locale: OG_LOCALE[lang],
       type: "article",
     },
   };
@@ -121,12 +122,22 @@ export default async function NewsDetailPage({
     notFound();
   }
 
+  // Per-locale news slugs differ, so publish the translated URLs to the
+  // layout-level LanguageSwitcher (a plain prefix swap would 404).
+  const altHref: AltHref = {};
+  for (const tr of await fetchTranslations(post._id)) {
+    if (isLang(tr.language ?? "") && tr.slug) {
+      altHref[tr.language as Lang] = `/${tr.language}/nyheter/${tr.slug}`;
+    }
+  }
+
   const t = dict(lang);
   const dims = post.coverImage?.dimensions;
   const coverUrl = post.coverImage ? urlFor(post.coverImage).width(1600).url() : undefined;
 
   return (
     <main>
+      <SetAltHref value={altHref} />
       <article className="py-24 md:py-32 relative">
         <div className="container mx-auto px-6 md:px-12">
           <div className="max-w-3xl mx-auto">

@@ -1,25 +1,15 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isLang, LANGS } from "@/lib/i18n";
 import { sanityFetch, SanityLive, typeTag } from "@/sanity/lib/live";
 import { SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { AltHrefProvider } from "@/components/site/AltHrefContext";
 import { TRPCProvider } from "@/lib/trpc/Provider";
 import type { SiteSettings } from "@/components/blocks/types";
 
 export function generateStaticParams() {
   return LANGS.map((lang) => ({ lang }));
-}
-
-// Note: the App Router cannot set the root <html lang> attribute from a
-// nested layout (app/layout.tsx owns <html>, and next/root-params requires
-// [lang] to be the root segment, which conflicts with the fixed root layout
-// used here for fonts). generateMetadata below covers title/description
-// overrides; full hreflang alternates + a real <html lang> story land in
-// Task 9 alongside metadataBase.
-export async function generateMetadata(): Promise<Metadata> {
-  return {};
 }
 
 // `'use cache'` boundary: `sanityFetch` calls `cacheTag()`/`cacheLife()`
@@ -53,9 +43,11 @@ export default async function LangLayout({
   return (
     <div className="min-h-screen bg-flamenco-dark text-flamenco-light font-sans selection:bg-flamenco-red selection:text-white">
       <TRPCProvider>
-        <Header settings={settings} lang={lang} />
-        {children}
-        <Footer settings={settings} />
+        <AltHrefProvider>
+          <Header settings={settings} lang={lang} />
+          {children}
+          <Footer settings={settings} />
+        </AltHrefProvider>
       </TRPCProvider>
       <SanityLive />
     </div>

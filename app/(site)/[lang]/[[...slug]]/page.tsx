@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer";
-import { isLang, LANGS } from "@/lib/i18n";
+import { SetAltHref, type AltHref } from "@/components/site/AltHrefContext";
+import { isLang, OG_LOCALE, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
 import { client } from "@/sanity/lib/client";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
-import { FRONT_PAGE_QUERY, PAGE_QUERY, PAGE_SLUGS_QUERY } from "@/sanity/lib/queries";
+import {
+  FRONT_PAGE_QUERY,
+  PAGE_QUERY,
+  PAGE_SLUGS_QUERY,
+  TRANSLATIONS_QUERY,
+} from "@/sanity/lib/queries";
 
 type PageData = {
+  _id: string;
   title: string | null;
   seoDescription: string | null;
   slug: string | null;
   language: string | null;
   blocks: PageBlock[] | null;
 };
+
+type Translation = { language: string | null; slug: string | null };
 
 type PageSlug = { slug: string; language: string };
 
@@ -44,13 +53,48 @@ async function getPage(
   const { data } = (await sanityFetch({
     query: joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
     params: joinedSlug ? { slug: joinedSlug, lang } : { lang },
-    tags: [typeTag("page")],
+    // PAGE_QUERY inline-expands referenced documents (see BLOCKS_PROJECTION in
+    // sanity/lib/queries.ts), so publishing any of those must also invalidate
+    // this page. Tag every type the query can pull in — the revalidate webhook
+    // (app/api/revalidate/route.ts) only knows the changed document's `_type`.
+    tags: [
+      typeTag("page"),
+      typeTag("classItem"),
+      typeTag("pricingPlan"),
+      typeTag("teacher"),
+      typeTag("galleryImage"),
+    ],
   })) as { data: PageData | null };
   return data;
 }
 
-// Page slugs are assumed identical across locales, so hreflang alternates are a
-// symmetric prefix swap (news detail uses TRANSLATIONS_QUERY instead).
+// Cached hreflang/language lookup. Uses the plain client, so it must live in a
+// `'use cache'` boundary to keep generateMetadata static under Cache Components.
+async function fetchTranslations(id: string): Promise<Translation[]> {
+  "use cache";
+  return (await client.fetch<Translation[]>(TRANSLATIONS_QUERY, { id })) ?? [];
+}
+
+// Maps each existing translation to its URL. Front-page translations serve at
+// the locale root (`/en`), not at their own slug (`/en/home`); sub-pages use
+// the translated slug. Only languages that actually have a translation are
+// included, so hreflang alternates are never emitted for non-existent pages.
+async function translatedUrls(
+  pageId: string,
+  isFrontPage: boolean,
+): Promise<Partial<Record<Lang, string>>> {
+  const urls: Partial<Record<Lang, string>> = {};
+  for (const tr of await fetchTranslations(pageId)) {
+    if (!isLang(tr.language ?? "")) continue;
+    if (isFrontPage) {
+      urls[tr.language as Lang] = `/${tr.language}`;
+    } else if (tr.slug) {
+      urls[tr.language as Lang] = `/${tr.language}/${tr.slug}`;
+    }
+  }
+  return urls;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -65,9 +109,15 @@ export async function generateMetadata({
 
   const path = joinedSlug ? `/${joinedSlug}` : "";
   const url = absoluteUrl(`/${lang}${path}`);
-  const languages = Object.fromEntries(
-    LANGS.map((l) => [l, absoluteUrl(`/${l}${path}`)]),
-  );
+
+  // Only advertise hreflang alternates for languages that actually have a
+  // translated page, resolved via the document-internationalization metadata.
+  const languages: Record<string, string> = { [lang]: url };
+  const alts = await translatedUrls(page._id, !joinedSlug);
+  for (const [l, p] of Object.entries(alts)) {
+    languages[l] = absoluteUrl(p);
+  }
+
   const title = `${page.title} | Flamenco Talento`;
 
   return {
@@ -79,7 +129,7 @@ export async function generateMetadata({
       description: page.seoDescription ?? undefined,
       url,
       siteName: "Flamenco Talento",
-      locale: lang === "no" ? "nb_NO" : "en_GB",
+      locale: OG_LOCALE[lang],
       type: "website",
     },
   };
@@ -110,8 +160,13 @@ export default async function CatchAllPage({
     notFound();
   }
 
+  // Publish translated targets to the layout-level LanguageSwitcher so it points
+  // at real translated slugs instead of a blind prefix swap.
+  const altHref: AltHref = await translatedUrls(page._id, !joinedSlug);
+
   return (
     <main>
+      <SetAltHref value={altHref} />
       <BlockRenderer blocks={page.blocks} lang={lang} />
     </main>
   );

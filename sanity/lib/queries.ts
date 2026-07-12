@@ -15,7 +15,7 @@ const BLOCKS_PROJECTION = /* groq */ `
 `;
 
 const PAGE_FIELDS = /* groq */ `
-  title, seoDescription, "slug": slug.current, language,
+  _id, title, seoDescription, "slug": slug.current, language,
   ${BLOCKS_PROJECTION}
 `;
 
