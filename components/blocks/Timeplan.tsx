@@ -4,6 +4,7 @@ import React from "react";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
+import { capitalize } from "@/lib/strings";
 import type { TimeplanBlock, ClassItem } from "@/components/blocks/types";
 
 const DAY_ORDER = [
@@ -15,10 +16,6 @@ const DAY_ORDER = [
   "lørdag",
   "søndag",
 ] as const;
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
 
 type DayGroup = { day: string; label: string; classes: ClassItem[] };
 

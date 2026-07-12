@@ -1,8 +1,5 @@
-import type { Lang } from "@/lib/i18n";
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
+import { BCP47, type Lang } from "@/lib/i18n";
+import { capitalize } from "@/lib/strings";
 
 // Formats a news date as e.g. "19. August" (no) / "19 August" (en). Lives in a
 // plain (non-"use client") module so it can be called from both server
@@ -11,7 +8,7 @@ export function formatNewsDate(date: string | null | undefined, lang: Lang) {
   if (!date) return "";
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return "";
-  const formatted = new Intl.DateTimeFormat(lang === "no" ? "nb-NO" : "en-GB", {
+  const formatted = new Intl.DateTimeFormat(BCP47[lang], {
     day: "numeric",
     month: "long",
   }).format(parsed);

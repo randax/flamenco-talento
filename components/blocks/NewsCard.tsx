@@ -8,10 +8,6 @@ import type { Lang } from "@/lib/i18n";
 import { formatNewsDate } from "@/lib/newsDate";
 import type { NewsPost } from "@/components/blocks/types";
 
-// Re-exported for existing importers; the implementation lives in a plain
-// (non-client) module so server components can use it too.
-export { formatNewsDate };
-
 // Shared news card, extracted verbatim from the Nyheter block so the block and
 // the /nyheter list page render identical markup. `variant` picks the featured
 // (red) card or the standard (dark) card.
