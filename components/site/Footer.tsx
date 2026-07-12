@@ -1,5 +1,6 @@
 import React from "react";
 import { Mail, Phone, CreditCard } from "lucide-react";
+import { stegaClean } from "next-sanity";
 import { Logo } from "@/components/site/Logo";
 import type { SiteSettings } from "@/components/blocks/types";
 
@@ -45,7 +46,12 @@ function InstagramIcon({ size = 20 }: { size?: number }) {
 }
 
 export function Footer({ settings }: { settings: SiteSettings | null }) {
-  const navLinks = settings?.navLinks ?? [];
+  // Clean stega encoding off CMS hrefs so anchor targets match section ids
+  // under visual editing, and href-based filtering works.
+  const navLinks = (settings?.navLinks ?? []).map((link) => ({
+    ...link,
+    href: stegaClean(link.href),
+  }));
   const quickLinks = navLinks.filter(
     (link) => !(link.href ?? "").toLowerCase().includes("kontakt"),
   );

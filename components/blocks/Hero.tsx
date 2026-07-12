@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
 import { urlFor } from "@/sanity/lib/image";
 import type { HeroBlock } from "@/components/blocks/types";
@@ -97,7 +98,7 @@ export function Hero({ block }: { block: HeroBlock }) {
         >
           {block.primaryCta?.label && (
             <a
-              href={block.primaryCta.href ?? "#"}
+              href={stegaClean(block.primaryCta.href) ?? "#"}
               className="px-8 py-4 bg-flamenco-red text-white font-medium tracking-widest uppercase transition-all duration-300 hover:bg-red-800 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-900/50"
             >
               {block.primaryCta.label}
@@ -105,7 +106,7 @@ export function Hero({ block }: { block: HeroBlock }) {
           )}
           {block.secondaryCta?.label && (
             <a
-              href={block.secondaryCta.href ?? "#"}
+              href={stegaClean(block.secondaryCta.href) ?? "#"}
               className="px-8 py-4 border border-white/30 text-white font-medium tracking-widest uppercase transition-all duration-300 hover:bg-white hover:text-flamenco-dark hover:-translate-y-1 hover:shadow-lg hover:shadow-white/10"
             >
               {block.secondaryCta.label}

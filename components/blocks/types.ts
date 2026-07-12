@@ -156,8 +156,6 @@ export type PageBlock =
   | NyheterBlock
   | SignupFormBlock;
 
-export type BlockType = PageBlock["_type"];
-
 export type SiteSettings = {
   navLinks?: { label?: string | null; href?: string | null }[] | null;
   contactPhone?: string | null;
@@ -167,16 +165,4 @@ export type SiteSettings = {
   instagramUrl?: string | null;
   footerTagline?: string | null;
   footerCopyrightName?: string | null;
-};
-
-// Anchor ids for in-page nav; marqueeBlock has none (it's decorative).
-export const SECTION_IDS: Partial<Record<BlockType, string>> = {
-  heroBlock: "hjem",
-  aboutBlock: "om",
-  pedagogBlock: "pedagog",
-  timeplanBlock: "timeplan",
-  prisBlock: "pris",
-  galleryBlock: "galleri",
-  nyheterBlock: "nyheter",
-  signupFormBlock: "kontakt",
 };

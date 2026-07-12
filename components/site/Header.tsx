@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { stegaClean } from "next-sanity";
 import { motion, AnimatePresence } from "@/components/site/Motion";
 import { Logo } from "@/components/site/Logo";
 import { LanguageSwitcher } from "@/components/site/LanguageSwitcher";
@@ -28,7 +29,12 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = settings?.navLinks ?? [];
+  // Clean stega encoding off CMS hrefs so anchor targets (#kontakt etc.)
+  // match section ids under visual editing, and href-based logic works.
+  const navLinks = (settings?.navLinks ?? []).map((link) => ({
+    ...link,
+    href: stegaClean(link.href),
+  }));
   const ctaLink = navLinks.find(isKontakt);
   const primaryLinks = navLinks.filter((link) => link !== ctaLink);
 

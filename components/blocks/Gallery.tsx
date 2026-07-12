@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
 import { urlFor } from "@/sanity/lib/image";
 import type { GalleryBlock, GalleryImage } from "@/components/blocks/types";
@@ -66,7 +67,7 @@ export function Gallery({ block }: { block: GalleryBlock }) {
                   delay: index * 0.1,
                   duration: 0.5,
                 }}
-                className={`relative overflow-hidden group ${SIZE_CLASSES[img.size ?? "small"]}`}
+                className={`relative overflow-hidden group ${SIZE_CLASSES[stegaClean(img.size) ?? "small"]}`}
               >
                 <div className="absolute inset-0 bg-flamenco-red/20 mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
                 {url && (
