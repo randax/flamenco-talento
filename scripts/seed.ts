@@ -146,7 +146,7 @@ const MEDIA: Record<string, MediaSpec> = {
   // Flamenco shoes & dress detail — About section + gallery slot 3.
   shoes: {
     filename: "flamenco-shoes-dress.jpg",
-    url: "https://images.unsplash.com/photo-1504609774514-cbcebc7c68b7?q=80&w=2070&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=2070&auto=format&fit=crop",
     kind: "image",
   },
   // Portrait — Pedagog (Danitza) + gallery slot 4.
@@ -158,13 +158,13 @@ const MEDIA: Record<string, MediaSpec> = {
   // Dancer with fan — gallery slot 1 (large).
   fan: {
     filename: "flamenco-dancer-fan.jpg",
-    url: "https://images.unsplash.com/photo-1533614767277-ea7d48fb47c0?q=80&w=1600&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1547153760-18fc86324498?q=80&w=1600&auto=format&fit=crop",
     kind: "image",
   },
   // Spanish guitar detail — gallery slot 2.
   guitar: {
     filename: "spanish-guitar.jpg",
-    url: "https://images.unsplash.com/photo-1511222449225-188806202952?q=80&w=1200&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?q=80&w=1200&auto=format&fit=crop",
     kind: "image",
   },
   // Hero background video.
@@ -457,9 +457,9 @@ interface GallerySpec {
 }
 
 const GALLERY: GallerySpec[] = [
-  { id: "0", asset: "fan", alt: "Flamencodanser med vifte", size: "large", sortOrder: 0 },
+  { id: "0", asset: "fan", alt: "Flamencodanser i bevegelse", size: "large", sortOrder: 0 },
   { id: "1", asset: "guitar", alt: "Detalj av spansk gitar", size: "small", sortOrder: 1 },
-  { id: "2", asset: "shoes", alt: "Flamencosko og kjole", size: "small", sortOrder: 2 },
+  { id: "2", asset: "shoes", alt: "Danser i rød flamencokjole", size: "small", sortOrder: 2 },
   { id: "3", asset: "portrait", alt: "Flamencoportrett", size: "wide", sortOrder: 3 },
 ];
 
@@ -663,7 +663,7 @@ function buildDocuments(assets: Record<string, string>): SanityDoc[] {
         heading: "Om",
         headingAccent: "Skolen",
         image: imageValue(assets.shoes),
-        imageAlt: "Flamencosko og kjoledetalj",
+        imageAlt: "Danser i rød flamencokjole",
         body: portableText(
           [
             "Flamenco Talento ble etablert i 2005 og har siden vært en sentral aktør i det norske flamencemiljøet. Vi tilbyr undervisning av høy kvalitet for alle nivåer, med fokus på både teknikk og uttrykk.",
@@ -751,7 +751,7 @@ function buildDocuments(assets: Record<string, string>): SanityDoc[] {
         heading: "About",
         headingAccent: "the School",
         image: imageValue(assets.shoes),
-        imageAlt: "Flamenco shoes and dress detail",
+        imageAlt: "Dancer in a red flamenco dress",
         body: portableText(
           [
             "Flamenco Talento was founded in 2005 and has since been a central force in the Norwegian flamenco community. We offer high-quality tuition for all levels, with a focus on both technique and expression.",
