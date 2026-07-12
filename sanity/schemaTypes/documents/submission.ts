@@ -39,6 +39,13 @@ export const submission = defineType({
       readOnly: true,
     }),
     defineField({
+      name: "lang",
+      title: "Språk",
+      description: "Språket personen brukte da de meldte seg på.",
+      type: "string",
+      readOnly: true,
+    }),
+    defineField({
       name: "createdAt",
       title: "Opprettet",
       type: "datetime",
