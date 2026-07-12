@@ -106,6 +106,7 @@ export default async function CatchAllPage({
   const { data: page } = (await sanityFetch({
     query: joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
     params: joinedSlug ? { slug: joinedSlug, lang } : { lang },
+    tags: ["type:page"],
   })) as { data: PageData | null };
 
   if (!page) {

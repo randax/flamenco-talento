@@ -49,6 +49,7 @@ async function fetchPost(slug: string, lang: Lang): Promise<NewsPostDetail | nul
     const { data } = (await sanityFetch({
       query: NEWS_POST_QUERY,
       params: { slug, lang },
+      tags: ["type:newsPost"],
     })) as { data: NewsPostDetail | null };
     return data;
   } catch {

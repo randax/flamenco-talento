@@ -27,6 +27,7 @@ async function fetchSiteSettings(lang: string): Promise<SiteSettings | null> {
     const { data } = (await sanityFetch({
       query: SITE_SETTINGS_QUERY,
       params: { lang },
+      tags: ["type:siteSettings"],
     })) as { data: SiteSettings | null };
     return data;
   } catch {
