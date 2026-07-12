@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer";
-import { isLang } from "@/lib/i18n";
+import { isLang, LANGS } from "@/lib/i18n";
+import { absoluteUrl } from "@/lib/seo";
 import { client } from "@/sanity/lib/client";
 import { sanityFetch } from "@/sanity/lib/live";
 import { FRONT_PAGE_QUERY, PAGE_QUERY, PAGE_SLUGS_QUERY } from "@/sanity/lib/queries";
@@ -28,6 +30,57 @@ export async function generateStaticParams() {
   } catch {
     return [];
   }
+}
+
+async function fetchPage(
+  lang: string,
+  joinedSlug: string | undefined,
+): Promise<PageData | null> {
+  try {
+    return await client.fetch<PageData | null>(
+      joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
+      joinedSlug ? { slug: joinedSlug, lang } : { lang },
+    );
+  } catch {
+    // The real Sanity project isn't provisioned yet; keep metadata build-safe.
+    return null;
+  }
+}
+
+// Page slugs are assumed identical across locales, so hreflang alternates are a
+// symmetric prefix swap (news detail uses TRANSLATIONS_QUERY instead).
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string; slug?: string[] }>;
+}): Promise<Metadata> {
+  const { lang, slug } = await params;
+  if (!isLang(lang) || slug?.[0] === "nyheter") return {};
+
+  const joinedSlug = slug?.join("/");
+  const page = await fetchPage(lang, joinedSlug);
+  if (!page) return {};
+
+  const path = joinedSlug ? `/${joinedSlug}` : "";
+  const url = absoluteUrl(`/${lang}${path}`);
+  const languages = Object.fromEntries(
+    LANGS.map((l) => [l, absoluteUrl(`/${l}${path}`)]),
+  );
+  const title = `${page.title} | Flamenco Talento`;
+
+  return {
+    title,
+    description: page.seoDescription ?? undefined,
+    alternates: { canonical: url, languages },
+    openGraph: {
+      title,
+      description: page.seoDescription ?? undefined,
+      url,
+      siteName: "Flamenco Talento",
+      locale: lang === "no" ? "nb_NO" : "en_GB",
+      type: "website",
+    },
+  };
 }
 
 export default async function CatchAllPage({

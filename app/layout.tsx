@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -11,6 +12,7 @@ const cormorant = Cormorant_Garamond({
 const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Flamenco Talento",
   description: "Flamenco Talento dansestudio",
 };

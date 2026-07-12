@@ -35,16 +35,37 @@ export const SITE_SETTINGS_QUERY = defineQuery(`
   *[_type == "siteSettings" && language == $lang][0]
 `);
 
+// List/latest views only need card fields — `body` is intentionally omitted so
+// list responses stay small. `slug` is kept as the raw object because NewsCard
+// (and the Nyheter block) read `slug.current`.
+const NEWS_CARD_FIELDS = /* groq */ `
+  _id, title, slug, date, excerpt, featured
+`;
+
 export const NEWS_LIST_QUERY = defineQuery(`
-  *[_type == "newsPost" && language == $lang] | order(date desc)
+  *[_type == "newsPost" && language == $lang] | order(date desc){
+    ${NEWS_CARD_FIELDS}
+  }
 `);
 
 export const NEWS_POST_QUERY = defineQuery(`
-  *[_type == "newsPost" && slug.current == $slug && language == $lang][0]
+  *[_type == "newsPost" && slug.current == $slug && language == $lang][0]{
+    _id, title, "slug": slug.current, date, excerpt, language, body,
+    coverImage{ ..., "dimensions": asset->metadata.dimensions }
+  }
 `);
 
 export const LATEST_NEWS_QUERY = defineQuery(`
-  *[_type == "newsPost" && language == $lang] | order(date desc)[0...$count]
+  *[_type == "newsPost" && language == $lang] | order(date desc)[0...$count]{
+    ${NEWS_CARD_FIELDS}
+  }
+`);
+
+export const NEWS_SLUGS_QUERY = defineQuery(`
+  *[_type == "newsPost" && defined(slug.current)]{
+    "slug": slug.current,
+    language
+  }
 `);
 
 export const PAGE_SLUGS_QUERY = defineQuery(`

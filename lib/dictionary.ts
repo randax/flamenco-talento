@@ -5,6 +5,10 @@ export type Dictionary = {
   closeMenu: string;
   readMore: string;
   backToNews: string;
+  newsPageTitle: string;
+  newsPageHeading: string;
+  newsPageHeadingAccent: string;
+  newsEmpty: string;
   formName: string;
   formEmail: string;
   formPhone: string;
@@ -24,6 +28,10 @@ const dictionaries: Record<Lang, Dictionary> = {
     closeMenu: "Lukk meny",
     readMore: "Les mer",
     backToNews: "Tilbake til nyheter",
+    newsPageTitle: "Nyheter",
+    newsPageHeading: "Siste",
+    newsPageHeadingAccent: "Nytt",
+    newsEmpty: "Ingen nyheter ennå.",
     formName: "Navn",
     formEmail: "E-post",
     formPhone: "Telefon",
@@ -41,6 +49,10 @@ const dictionaries: Record<Lang, Dictionary> = {
     closeMenu: "Close menu",
     readMore: "Read more",
     backToNews: "Back to news",
+    newsPageTitle: "News",
+    newsPageHeading: "Latest",
+    newsPageHeadingAccent: "News",
+    newsEmpty: "No news yet.",
     formName: "Name",
     formEmail: "Email",
     formPhone: "Phone",
