@@ -1,0 +1,1 @@
+This folder is a verbatim snapshot of the Magic Patterns design artifact (id `e0bad8ad-3ef0-43df-a1b4-bbeafdae8637`). It is reference-only, for porting components into the real Next.js app in later tasks — it is never imported by the app.
