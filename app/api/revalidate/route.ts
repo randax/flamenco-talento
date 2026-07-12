@@ -17,18 +17,29 @@
  * webhook forces revalidation of the relevant `_type` tag regardless of
  * whether a live client is connected, so the *next* visit is always fresh.
  *
- * Tagging scheme: `sanityFetch` calls in this app pass a `tags: [\`type:<_type>\`]`
- * option (see app/(site)/[lang]/**\/page.tsx and layout.tsx) in addition to
- * the automatic per-document `sanity:*` sync tags next-sanity manages for
- * the live SSE mechanism. This route only knows the changed document's
- * `_type` (from the webhook payload), so it revalidates that `type:<_type>`
- * tag — it can't target the opaque internal `sanity:*` sync tags, which are
- * exclusively driven by the live SSE connection.
+ * Tagging scheme: `sanityFetch` calls in this app pass `tags: [typeTag(type)]`
+ * (see sanity/lib/live.ts and the app/(site)/[lang]/**\/page.tsx / layout.tsx
+ * call sites) in addition to the automatic per-document `sanity:*` sync tags
+ * next-sanity manages for the live SSE mechanism. This route only knows the
+ * changed document's `_type` (from the webhook payload), so it revalidates
+ * that `type:<_type>` tag — it can't target the opaque internal `sanity:*`
+ * sync tags, which are exclusively driven by the live SSE connection.
+ *
+ * KNOWN GAP: `sanityFetch`'s `cacheTag()`/`cacheLife()` calls (inside
+ * next-sanity, called from sanity/lib/live.ts) throw unless `cacheComponents:
+ * true` is set in next.config.ts — it isn't, here. That's a pre-existing gap
+ * from before this task (not introduced by this route) that's currently
+ * masked because the placeholder Sanity project id makes `client.fetch`
+ * throw first, which every call site catches. Once a real Sanity project is
+ * connected, either enable `cacheComponents` (a repo-wide behavioral change
+ * — needs its own verification pass) or this tagging/revalidation path will
+ * throw at request time. Flagging for follow-up, not fixing here.
  */
 import { revalidateTag } from "next/cache";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { parseBody } from "next-sanity/webhook";
+import { typeTag } from "@/sanity/lib/live";
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,9 +63,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // "max" matches the cache profile `sanityFetch` applies via `cacheLife(sanity)`
-    // in sanity/lib/live.ts, and the profile next-sanity's own live-sync action uses.
-    revalidateTag(`type:${type}`, "max");
+    // "max" matches the cache profile next-sanity's own live-sync server
+    // action uses (next-sanity/dist/live/server-actions) when revalidating
+    // sync tags in production.
+    revalidateTag(typeTag(type), "max");
 
     return NextResponse.json({ revalidated: true, type });
   } catch (err) {

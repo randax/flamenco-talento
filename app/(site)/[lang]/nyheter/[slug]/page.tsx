@@ -9,7 +9,7 @@ import { dict } from "@/lib/dictionary";
 import { isLang, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
 import { client } from "@/sanity/lib/client";
-import { sanityFetch } from "@/sanity/lib/live";
+import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { urlFor } from "@/sanity/lib/image";
 import { NEWS_POST_QUERY, NEWS_SLUGS_QUERY, TRANSLATIONS_QUERY } from "@/sanity/lib/queries";
 import { PortableText } from "@/components/site/PortableText";
@@ -49,7 +49,7 @@ async function fetchPost(slug: string, lang: Lang): Promise<NewsPostDetail | nul
     const { data } = (await sanityFetch({
       query: NEWS_POST_QUERY,
       params: { slug, lang },
-      tags: ["type:newsPost"],
+      tags: [typeTag("newsPost")],
     })) as { data: NewsPostDetail | null };
     return data;
   } catch {

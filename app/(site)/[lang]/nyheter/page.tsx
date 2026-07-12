@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { dict } from "@/lib/dictionary";
 import { isLang, LANGS, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
-import { sanityFetch } from "@/sanity/lib/live";
+import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { NEWS_LIST_QUERY } from "@/sanity/lib/queries";
 import { NewsCard } from "@/components/blocks/NewsCard";
 import type { NewsPost } from "@/components/blocks/types";
@@ -43,7 +43,7 @@ async function fetchNewsList(lang: Lang): Promise<NewsPost[]> {
     const { data } = (await sanityFetch({
       query: NEWS_LIST_QUERY,
       params: { lang },
-      tags: ["type:newsPost"],
+      tags: [typeTag("newsPost")],
     })) as { data: NewsPost[] | null };
     return data ?? [];
   } catch {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isLang, LANGS } from "@/lib/i18n";
-import { sanityFetch, SanityLive } from "@/sanity/lib/live";
+import { sanityFetch, SanityLive, typeTag } from "@/sanity/lib/live";
 import { SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -27,7 +27,7 @@ async function fetchSiteSettings(lang: string): Promise<SiteSettings | null> {
     const { data } = (await sanityFetch({
       query: SITE_SETTINGS_QUERY,
       params: { lang },
-      tags: ["type:siteSettings"],
+      tags: [typeTag("siteSettings")],
     })) as { data: SiteSettings | null };
     return data;
   } catch {

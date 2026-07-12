@@ -34,7 +34,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@sanity/webhook": "^4.0.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

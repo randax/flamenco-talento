@@ -4,7 +4,7 @@ import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer
 import { isLang, LANGS } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
 import { client } from "@/sanity/lib/client";
-import { sanityFetch } from "@/sanity/lib/live";
+import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { FRONT_PAGE_QUERY, PAGE_QUERY, PAGE_SLUGS_QUERY } from "@/sanity/lib/queries";
 
 type PageData = {
@@ -106,7 +106,7 @@ export default async function CatchAllPage({
   const { data: page } = (await sanityFetch({
     query: joinedSlug ? PAGE_QUERY : FRONT_PAGE_QUERY,
     params: joinedSlug ? { slug: joinedSlug, lang } : { lang },
-    tags: ["type:page"],
+    tags: [typeTag("page")],
   })) as { data: PageData | null };
 
   if (!page) {
