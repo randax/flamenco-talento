@@ -132,8 +132,9 @@ Alt innhold redigeres i Sanity Studio på `https://<din-side>/studio` (lokalt:
 
 1. Åpne **Presentation** (øye-ikonet) i toppmenyen i Studio. Da ser du nettsiden
    ved siden av redigeringsfeltene.
-2. Naviger til siden du vil endre i forhåndsvisningen, og klikk på dokumentet
-   for siden (f.eks. «Hjem») i dokumentlisten for å åpne redigeringsfeltene.
+2. Naviger til siden du vil endre i forhåndsvisningen. Dokumentet for siden
+   (f.eks. «Hjem») åpnes automatisk i redigeringsfeltene; har du lukket det,
+   klikker du på det i dokumentlisten.
 3. Endringer vises i forhåndsvisningen etter et øyeblikk. De blir **først synlige
    for publikum når du trykker _Publish_** nederst. Forhåndsvisningen viser alltid
    utkast (drafts), også om du bytter perspektiv øverst i Presentation. Har du
