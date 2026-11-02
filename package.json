@@ -40,6 +40,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.4",
+    "groq-js": "^2.0.1",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5",
