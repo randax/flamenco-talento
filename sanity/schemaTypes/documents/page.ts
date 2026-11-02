@@ -34,19 +34,22 @@ export const page = defineType({
       // redirects its slug there, so two would make /<lang> ambiguous.
       // Checked against drafts, so switching front pages needs no downtime:
       // untick the old one (a draft is enough), publish the new, then publish
-      // the old.
+      // the old (see README "Bytte forside"). Pages staged in a Content
+      // Release are not visible to this check.
       validation: (Rule) =>
         Rule.custom(async (isFrontPage, { document, getClient }) => {
           if (!isFrontPage || !document) return true;
+          // Select the document, not just its title: an untitled draft is
+          // still a front page.
           const other = await getClient({ apiVersion })
             .withConfig({ perspective: "drafts" })
-            .fetch<string | null>(
-              `*[_type == "page" && isFrontPage == true && language == $lang && _id != $id][0].title`,
+            .fetch<{ title: string | null } | null>(
+              `*[_type == "page" && isFrontPage == true && language == $lang && _id != $id][0]{ title }`,
               { lang: document.language ?? null, id: getPublishedId(document._id) },
             );
-          return other
-            ? `«${other}» er allerede forsiden for dette språket. Fjern haken der først (du trenger ikke publisere den endringen før denne).`
-            : true;
+          if (!other) return true;
+          const name = other.title ? `«${other.title}»` : "En annen side";
+          return `${name} er allerede forsiden for dette språket. Fjern haken der først (du trenger ikke publisere den endringen før denne).`;
         }),
     }),
     defineField({

@@ -30,7 +30,7 @@ const dataset = [
   },
   { _id: "class-1", _type: "classItem", name: "Nybegynner" },
   { _id: "page-om", _type: "page", language: "no", slug: { current: "om-oss" }, blocks: [] },
-  // Mirrors scripts/seed.ts: each language has its own front page.
+  // Like scripts/seed.ts, each language has its own front page.
   { _id: "page-en", _type: "page", language: "en", isFrontPage: true, slug: { current: "home" }, blocks: [] },
   { _id: "page-kurs", _type: "page", language: "en", isFrontPage: false, slug: { current: "classes" }, blocks: [] },
   {
