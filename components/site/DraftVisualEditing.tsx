@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition } from "react";
+import { startTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { VisualEditing } from "next-sanity/visual-editing";
 
@@ -11,13 +11,10 @@ import { VisualEditing } from "next-sanity/visual-editing";
 // server-only token (see sanity/lib/live.ts).
 export function DraftVisualEditing() {
   const router = useRouter();
-  return (
-    <VisualEditing
-      refresh={() => {
-        startTransition(() => router.refresh());
-        // Same settle time next-sanity's default handler gives Presentation.
-        return new Promise((resolve) => setTimeout(resolve, 1000));
-      }}
-    />
-  );
+  const refresh = useCallback(() => {
+    startTransition(() => router.refresh());
+    // Same settle time next-sanity's default handler gives Presentation.
+    return new Promise<void>((resolve) => setTimeout(resolve, 1000));
+  }, [router]);
+  return <VisualEditing refresh={refresh} />;
 }
