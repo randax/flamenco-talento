@@ -3,6 +3,8 @@ import { Mail, Phone, CreditCard } from "lucide-react";
 import { stegaClean } from "next-sanity";
 import { Logo } from "@/components/site/Logo";
 import type { SiteSettings } from "@/components/blocks/types";
+import type { Lang } from "@/lib/i18n";
+import { navHref } from "@/lib/links";
 
 // Evaluated once at module load (build time), not during render. Reading the
 // current time *inside* a Server Component render is disallowed under Cache
@@ -52,16 +54,13 @@ function InstagramIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-export function Footer({ settings }: { settings: SiteSettings | null }) {
-  // Clean stega encoding off CMS hrefs so anchor targets match section ids
-  // under visual editing, and href-based filtering works.
-  const navLinks = (settings?.navLinks ?? []).map((link) => ({
-    ...link,
-    href: stegaClean(link.href),
-  }));
-  const quickLinks = navLinks.filter(
-    (link) => !(link.href ?? "").toLowerCase().includes("kontakt"),
-  );
+export function Footer({ settings, lang }: { settings: SiteSettings | null; lang: Lang }) {
+  // Clean stega encoding off CMS hrefs so href-based filtering works, and point
+  // section anchors at the front page so they work from every page.
+  const quickLinks = (settings?.navLinks ?? [])
+    .map((link) => ({ ...link, rawHref: stegaClean(link.href) }))
+    .filter((link) => !(link.rawHref ?? "").toLowerCase().includes("kontakt"))
+    .map((link) => ({ ...link, href: navHref(link.rawHref, lang) }));
   const phone = settings?.contactPhone;
   const email = settings?.contactEmail;
   const account = settings?.accountNumber;
@@ -146,9 +145,9 @@ export function Footer({ settings }: { settings: SiteSettings | null }) {
             <h3 className="text-lg font-serif font-bold text-white mb-6">Snarveier</h3>
             <ul className="space-y-3">
               {quickLinks.map((link) => (
-                <li key={link.href ?? link.label}>
+                <li key={`${link.label}|${link.href}`}>
                   <a
-                    href={link.href ?? "#"}
+                    href={link.href}
                     className="text-flamenco-light/70 hover:text-white hover:underline underline-offset-4 decoration-flamenco-red transition-all"
                   >
                     {link.label}

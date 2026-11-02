@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer";
 import { SetAltHref, type AltHref } from "@/components/site/AltHrefContext";
-import { isLang, OG_LOCALE, type Lang } from "@/lib/i18n";
+import { isLang, LANGS, OG_LOCALE, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
 import { client } from "@/sanity/lib/client";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
@@ -19,6 +19,7 @@ type PageData = {
   seoDescription: string | null;
   slug: string | null;
   language: string | null;
+  isFrontPage: boolean | null;
   blocks: PageBlock[] | null;
 };
 
@@ -26,18 +27,22 @@ type Translation = { language: string | null; slug: string | null };
 
 type PageSlug = { slug: string; language: string };
 
-// The real Sanity project isn't provisioned yet (placeholder project id in
-// sanity/env.ts), so this fetch fails during `next build`. Fall back to an
-// empty list so the build stays green — pages render on demand and get
-// picked up by ISR once a real project exists.
+// Each locale's front page (`/no`, `/en`) plus every other page slug. The
+// roots are listed explicitly: Cache Components requires at least one param
+// set, and the Sanity fetch can fail during `next build` (pages then render on
+// demand). Nested slugs (`classes/beginners`) become one segment per part.
 export async function generateStaticParams() {
+  const roots = LANGS.map((lang) => ({ lang, slug: [] as string[] }));
   try {
     const pages = await client.fetch<PageSlug[]>(PAGE_SLUGS_QUERY);
-    return pages
-      .filter(({ slug }) => slug !== "nyheter")
-      .map(({ slug, language }) => ({ lang: language, slug: [slug] }));
+    return [
+      ...roots,
+      ...pages
+        .filter(({ slug }) => slug !== "nyheter")
+        .map(({ slug, language }) => ({ lang: language, slug: slug.split("/") })),
+    ];
   } catch {
-    return [];
+    return roots;
   }
 }
 
@@ -158,6 +163,12 @@ export default async function CatchAllPage({
 
   if (!page) {
     notFound();
+  }
+
+  // The front page also matches its own slug (`/no/forside`); serve it only at
+  // the locale root so there is one URL per page.
+  if (joinedSlug && page.isFrontPage) {
+    permanentRedirect(`/${lang}`);
   }
 
   // Publish translated targets to the layout-level LanguageSwitcher so it points
