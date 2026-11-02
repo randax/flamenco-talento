@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# original photos, uploaded to Sanity by scripts/hero-images.ts
+/images

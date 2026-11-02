@@ -1,4 +1,4 @@
-import type { SanityImageSource } from "@sanity/image-url";
+import type { SanityImageObject, SanityImageSource } from "@sanity/image-url";
 import type { PortableTextBlock } from "@portabletext/types";
 
 export type ImageDimensions = {
@@ -16,6 +16,8 @@ export type CtaLink = {
   href?: string | null;
 };
 
+export type HeroImage = SanityImageObject & { _key: string; alt?: string | null };
+
 export type HeroBlock = {
   _type: "heroBlock";
   _key: string;
@@ -23,6 +25,7 @@ export type HeroBlock = {
   headingLine1?: string | null;
   headingLine2?: string | null;
   tagline?: string | null;
+  images?: HeroImage[] | null;
   videoUrl?: string | null;
   poster?: SanityImageSource | null;
   primaryCta?: CtaLink | null;

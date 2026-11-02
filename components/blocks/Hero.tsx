@@ -1,41 +1,135 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
+import Image from "next/image";
 import { stegaClean } from "next-sanity";
-import { motion } from "@/components/site/Motion";
-import { urlFor } from "@/sanity/lib/image";
-import type { HeroBlock } from "@/components/blocks/types";
+import { motion, MotionConfig } from "@/components/site/Motion";
+import { hotspotPosition, urlFor } from "@/sanity/lib/image";
+import type { HeroBlock, HeroImage } from "@/components/blocks/types";
 import { SECTION_ID } from "@/components/blocks/sections";
+
+const SLIDE_S = 6;
+const FADE_S = 1.6;
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+// The user's reduced-motion preference, used to pause the slideshow. Not
+// framer's useReducedMotion: that reads the preference during the first
+// render, so the client's first render differs from the server's (hydration
+// error). This hydrates as "no preference", then updates.
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(REDUCED_MOTION);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(REDUCED_MOTION).matches,
+    () => false,
+  );
+}
+
+// Full-bleed photos that dissolve into each other, each drifting slowly in
+// (Ken Burns), in black and white like the video. A single photo is a still;
+// with reduced motion the slideshow pauses on the first photo and
+// MotionConfig drops the zoom.
+function HeroPhotos({ images }: { images: HeroImage[] }) {
+  const reduceMotion = usePrefersReducedMotion();
+  const slideshow = images.length > 1 && !reduceMotion;
+  const zoom = images.length > 1 ? 1.12 : 1;
+  const n = images.length;
+  const [step, setStep] = useState(0);
+  const current = step % n;
+
+  useEffect(() => {
+    if (!slideshow) return;
+    const timer = setInterval(() => setStep((s) => s + 1), SLIDE_S * 1000);
+    return () => clearInterval(timer);
+  }, [slideshow]);
+
+  // Only the photo on screen, the one fading out and the next one are
+  // mounted, so visitors don't download every photo up front.
+  const nearby = (k: number) =>
+    k === current || (slideshow && (k === (step + 1) % n || (step > 0 && k === (step - 1) % n)));
+
+  return (
+    <MotionConfig reducedMotion="user">
+      {images.map((image, k) => {
+        if (!nearby(k)) return null;
+        const isCurrent = k === current;
+        return (
+          <motion.div
+            key={image._key}
+            aria-hidden={!isCurrent}
+            className="absolute inset-0"
+            initial={{ opacity: isCurrent ? 1 : 0, scale: zoom }}
+            animate={{ opacity: isCurrent ? 1 : 0, scale: isCurrent ? 1 : zoom }}
+            transition={{
+              opacity: { duration: FADE_S },
+              // Drift in while showing; jump back only once faded out.
+              scale: isCurrent ? { duration: SLIDE_S + FADE_S, ease: "linear" } : { delay: FADE_S, duration: 0 },
+            }}
+          >
+            <Image
+              src={urlFor(image).width(2400).url()}
+              alt={image.alt ?? ""}
+              fill
+              priority={k === 0}
+              sizes="100vw"
+              className="object-cover grayscale"
+              style={{ objectPosition: hotspotPosition(image) }}
+            />
+          </motion.div>
+        );
+      })}
+      {slideshow && (
+        <div aria-hidden className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+          {images.map((image, k) => (
+            <span
+              key={image._key}
+              className={`h-px w-10 transition-colors duration-700 ${k === current ? "bg-white" : "bg-white/25"}`}
+            />
+          ))}
+        </div>
+      )}
+    </MotionConfig>
+  );
+}
 
 export function Hero({ block }: { block: HeroBlock }) {
   const posterUrl = block.poster ? urlFor(block.poster).width(1600).url() : undefined;
+  // An image whose upload hasn't finished has no asset yet.
+  const images = (block.images ?? []).filter((image) => image.asset);
 
   return (
     <section
       id={SECTION_ID.heroBlock}
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
     >
-      {/* Full-bleed cinematic video */}
-      <div className="absolute inset-0 z-0">
-        <motion.video
-          initial={{
-            scale: 1.08,
-          }}
-          animate={{
-            scale: 1,
-          }}
-          transition={{
-            duration: 1.6,
-            ease: "easeOut",
-          }}
-          src={block.videoUrl ?? undefined}
-          poster={posterUrl}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover object-center grayscale"
-        />
+      {/* Full-bleed photos, or the cinematic video when there are none */}
+      <div className="absolute inset-0 z-0 bg-flamenco-dark">
+        {images.length > 0 ? (
+          <HeroPhotos images={images} />
+        ) : (
+          <motion.video
+            initial={{
+              scale: 1.08,
+            }}
+            animate={{
+              scale: 1,
+            }}
+            transition={{
+              duration: 1.6,
+              ease: "easeOut",
+            }}
+            src={block.videoUrl ?? undefined}
+            poster={posterUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover object-center grayscale"
+          />
+        )}
         {/* Even cinematic scrim for legibility */}
         <div className="absolute inset-0 bg-flamenco-dark/50"></div>
         {/* Subtle top & bottom anchoring so text always reads */}
