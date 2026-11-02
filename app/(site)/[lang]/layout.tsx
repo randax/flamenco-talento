@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { isLang, LANGS } from "@/lib/i18n";
-import { sanityFetch, SanityLive, typeTag } from "@/sanity/lib/live";
+import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { LivePreview } from "@/components/site/LivePreview";
 import { AltHrefProvider } from "@/components/site/AltHrefContext";
 import { TRPCProvider } from "@/lib/trpc/Provider";
 import type { SiteSettings } from "@/components/blocks/types";
@@ -49,7 +50,7 @@ export default async function LangLayout({
           <Footer settings={settings} />
         </AltHrefProvider>
       </TRPCProvider>
-      <SanityLive />
+      <LivePreview />
     </div>
   );
 }

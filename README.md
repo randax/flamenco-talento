@@ -43,7 +43,6 @@ gyldige verdier i `.env.local`.
 | `SANITY_API_READ_TOKEN` | ja | Lese-token (Viewer). Brukes av `sanityFetch` og draft-forhåndsvisning. |
 | `SANITY_API_WRITE_TOKEN` | ja | Skrive-token (Editor). Brukes av påmelding (`create submission`) og `pnpm seed`. |
 | `SANITY_REVALIDATE_SECRET` | ja | Delt hemmelighet for webhook-signaturen til `/api/revalidate`. |
-| `SANITY_STUDIO_PREVIEW_ORIGIN` | ja | Origin som Presentation forhåndsviser mot (dev: `http://localhost:3000`). |
 | `RESEND_API_KEY` | valgfri | Resend-nøkkel. Uten den hoppes e-postvarsel over (påmeldingen lagres likevel). |
 | `SIGNUP_NOTIFICATION_EMAIL` | valgfri | Mottaker for påmeldingsvarsel. |
 | `NEXT_PUBLIC_SITE_URL` | ja | Absolutt base-URL for metadata/sitemap/hreflang. |
@@ -104,9 +103,9 @@ med URL-prefiks (`/no`, `/en`); rot-`/` redirigerer via `Accept-Language`.
 
 1. **Importer repoet** i Vercel (rammeverk: Next.js, pakkehåndterer: pnpm).
 2. **Sett miljøvariabler** (tabellen over) i Vercel Project Settings →
-   Environment Variables. Sett `NEXT_PUBLIC_SITE_URL` og
-   `SANITY_STUDIO_PREVIEW_ORIGIN` til den deployede URL-en (f.eks.
-   `https://flamencotalento.no`).
+   Environment Variables. Sett `NEXT_PUBLIC_SITE_URL` til den deployede
+   URL-en (f.eks. `https://flamencotalento.no`). Presentation forhåndsviser
+   mot samme URL som Studio kjører på, så den trenger ingen egen variabel.
 3. **CORS-origin i Sanity:** gå til sanity.io/manage → prosjektet → API → CORS
    origins, og legg til deploy-URL-en (og `http://localhost:3000` for lokal
    Studio) med *Allow credentials* på. Uten dette kan ikke Studio/Presentation
@@ -133,10 +132,14 @@ Alt innhold redigeres i Sanity Studio på `https://<din-side>/studio` (lokalt:
 
 1. Åpne **Presentation** (øye-ikonet) i toppmenyen i Studio. Da ser du nettsiden
    ved siden av redigeringsfeltene.
-2. Klikk på et element på siden (overskrift, tekst, bilde) for å hoppe rett til
-   feltet som styrer det ("click-to-edit").
-3. Endringer vises umiddelbart i forhåndsvisningen. De blir **først synlige for
-   publikum når du trykker _Publish_** nederst.
+2. Naviger til siden du vil endre i forhåndsvisningen. Dokumentet for siden
+   (f.eks. «Forside») åpnes automatisk i redigeringsfeltene; har du lukket det,
+   klikker du på det i dokumentlisten.
+3. Endringer vises i forhåndsvisningen etter et øyeblikk. De blir **først synlige
+   for publikum når du trykker _Publish_** nederst. Forhåndsvisningen viser alltid
+   utkast (drafts), også om du bytter perspektiv øverst i Presentation. Har du
+   forkastet et utkast (_Discard changes_), trykker du på oppdater-knappen i
+   forhåndsvisningen for å se den publiserte versjonen igjen.
 4. Forsiden er bygget av blokker. Du kan endre rekkefølge, legge til eller
    fjerne blokker (hero, om skolen, pedagog, timeplan, priser, galleri, nyheter,
    påmelding) under `page`-dokumentet som er merket som forside.

@@ -3,7 +3,7 @@
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
-import { presentationTool } from "sanity/presentation";
+import { defineDocuments, presentationTool } from "sanity/presentation";
 import { documentInternationalization } from "@sanity/document-internationalization";
 import { apiVersion, dataset, projectId } from "./sanity/env";
 import { schemaTypes } from "./sanity/schemaTypes";
@@ -25,11 +25,46 @@ export default defineConfig({
       schemaTypes: ["page", "newsPost", "classItem", "pricingPlan", "teacher", "siteSettings"],
     }),
     presentationTool({
+      // No `origin`: it defaults to the Studio's own location, which is the
+      // site itself since the Studio is embedded at /studio.
       previewUrl: {
-        origin: process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? "http://localhost:3000",
         previewMode: {
           enable: "/api/draft-mode/enable",
         },
+      },
+      // Tells Presentation which document a previewed URL shows, so editors
+      // can open it next to the preview. Selecting a document is also what
+      // makes Presentation send the draft-edit refreshes the site listens for
+      // (components/site/DraftVisualEditing.tsx). Mirrors app/(site)/[lang].
+      resolve: {
+        mainDocuments: defineDocuments([
+          {
+            route: "/:lang",
+            filter: `_type == "page" && isFrontPage == true && language == $lang`,
+          },
+          {
+            route: "/:lang/nyheter/:slug",
+            filter: `_type == "newsPost" && slug.current == $slug && language == $lang`,
+          },
+          {
+            // The news index lists many posts and has no main document.
+            // Resolving to nothing (rather than letting the page route below
+            // match and find no page) keeps the editor's open document open.
+            route: "/:lang/nyheter",
+            resolve: () => undefined,
+          },
+          {
+            // `:slug+` spans nested slugs (`/en/classes/beginners`) like the
+            // site's [[...slug]] route; Presentation passes repeated params as
+            // an array, so join them back into the stored slug.
+            route: "/:lang/:slug+",
+            filter: `_type == "page" && slug.current == $slug && language == $lang`,
+            params: ({ params }) => ({
+              lang: params.lang,
+              slug: ([] as string[]).concat(params.slug).join("/"),
+            }),
+          },
+        ]),
       },
     }),
   ],
