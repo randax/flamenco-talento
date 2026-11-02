@@ -12,7 +12,10 @@ const token = process.env.SANITY_API_READ_TOKEN;
 const { sanityFetch: liveFetch, SanityLive } = defineLive({
   client,
   serverToken: token,
-  browserToken: token,
+  // Never ship a token to the browser: the Viewer token can read every
+  // document, including signup submissions. Draft edits reach the Presentation
+  // preview through components/site/DraftVisualEditing.tsx instead.
+  browserToken: false,
 });
 
 export { SanityLive };

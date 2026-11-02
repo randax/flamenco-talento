@@ -1,18 +1,18 @@
 import { draftMode } from "next/headers";
-import { VisualEditing } from "next-sanity/visual-editing";
 import { SanityLive } from "@/sanity/lib/live";
+import { DraftVisualEditing } from "./DraftVisualEditing";
 
-// Cached so reading `draftMode()` doesn't make every page dynamic. Next re-runs
-// it on each request while Draft Mode is on. Visitors get `<SanityLive />` for
-// published updates; editors in the Presentation tool also get draft events
-// and the `<VisualEditing />` bridge Presentation connects to.
+// Cached so reading `draftMode()` doesn't make every page dynamic; Next re-runs
+// it on each request while Draft Mode is on. Everyone gets `<SanityLive />` for
+// published updates. Editors in the Presentation tool also get the
+// `<VisualEditing />` bridge, which refreshes the page on each draft edit.
 export async function LivePreview() {
   "use cache";
   const { isEnabled } = await draftMode();
   return (
     <>
-      <SanityLive includeDrafts={isEnabled} />
-      {isEnabled && <VisualEditing />}
+      <SanityLive />
+      {isEnabled && <DraftVisualEditing />}
     </>
   );
 }
