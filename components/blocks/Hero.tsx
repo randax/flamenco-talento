@@ -48,8 +48,9 @@ function useHydrated(): boolean {
 // Each slide lives one cycle: mounted as "next" (hidden, preloading), then
 // "current" (fades in, pushes in), then "previous" (keeps pushing in while it
 // fades out). The slideshow advances only once the next photo has loaded; the
-// push-in pauses while it waits, so there is zoom left for the fade. The
-// rules live in heroSlideshow.ts.
+// push-in pauses while it waits, so there is zoom left for the fade. Fades and
+// push-in are CSS animations so pausing freezes both. The rules live in
+// heroSlideshow.ts.
 function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: Lang; onAllFailed: () => void }) {
   const t = dict(lang);
   const reduceMotion = usePrefersReducedMotion();
@@ -57,7 +58,9 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
   const [state, dispatch] = useReducer(slideshowReducer, images, initialSlideshow);
   const { paused } = state;
   const visible = images.filter((image) => !state.failed.includes(image._key));
-  const slideshow = visible.length > 1 && !reduceMotion;
+  // Decided by the photos configured, not those still loading fine, so a
+  // failure mid-run stays under the slideshow's rules (pause, readiness).
+  const slideshow = images.length > 1 && !reduceMotion;
   const allFailed = visible.length === 0;
 
   useEffect(() => {
@@ -102,13 +105,21 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
         // crossfade stay in step.
         const pushing = slideshow && hydrated && role !== "next";
         return (
-          <motion.div
+          <div
             key={id}
             aria-hidden={role !== "current"}
             className="absolute inset-0"
-            initial={{ opacity: role === "current" ? 1 : 0 }}
-            animate={{ opacity: role === "current" ? 1 : 0 }}
-            transition={{ duration: FADE_S }}
+            style={{
+              opacity: role === "next" ? 0 : undefined,
+              // The first photo is in the server HTML, already showing.
+              animation:
+                role === "previous"
+                  ? `hero-fade-out ${FADE_S}s linear forwards`
+                  : role === "current" && slide.seq > 0
+                    ? `hero-fade-in ${FADE_S}s linear forwards`
+                    : undefined,
+              animationPlayState: paused ? "paused" : "running",
+            }}
           >
             <div
               className="absolute inset-0"
@@ -141,7 +152,7 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
                 style={{ objectPosition: hotspotPosition(image) }}
               />
             </div>
-          </motion.div>
+          </div>
         );
       })}
       {slideshow && (
@@ -168,48 +179,70 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
   );
 }
 
+// The photos, or the video when there are none or none of them load.
+function HeroBackground({
+  images,
+  lang,
+  videoUrl,
+  posterUrl,
+}: {
+  images: HeroImage[];
+  lang: Lang;
+  videoUrl?: string;
+  posterUrl?: string;
+}) {
+  const [photosFailed, setPhotosFailed] = useState(false);
+  const onAllFailed = useCallback(() => setPhotosFailed(true), []);
+  if (images.length > 0 && !photosFailed) {
+    return <HeroPhotos images={images} lang={lang} onAllFailed={onAllFailed} />;
+  }
+  return (
+    <motion.video
+      initial={{
+        scale: 1.08,
+      }}
+      animate={{
+        scale: 1,
+      }}
+      transition={{
+        duration: 1.6,
+        ease: "easeOut",
+      }}
+      src={videoUrl}
+      poster={posterUrl}
+      autoPlay
+      loop
+      muted
+      playsInline
+      className="w-full h-full object-cover object-center grayscale"
+    />
+  );
+}
+
 export function Hero({ block, lang }: { block: HeroBlock; lang: Lang }) {
   const posterUrl = block.poster ? urlFor(block.poster).width(1600).url() : undefined;
   // An image whose upload hasn't finished has no asset yet. Memoised so live
   // content refreshes don't restart the slideshow timer.
   const images = useMemo(() => (block.images ?? []).filter((image) => image.asset), [block.images]);
-  // Which photos these are. A new set (an editor swapping photos in a live
-  // refresh) starts the slideshow afresh and clears an earlier "all failed".
+  // Which photos these are. Keying the background on it means a new set (an
+  // editor swapping photos in a live refresh) starts afresh, including
+  // retrying a set that failed before.
   const photoSet = images.map((image) => `${image._key}:${assetId(image)}`).join(",");
-  const [failedSet, setFailedSet] = useState<string | null>(null);
-  const onAllFailed = useCallback(() => setFailedSet(photoSet), [photoSet]);
-  const photosFailed = failedSet === photoSet;
 
   return (
     <section
       id={SECTION_ID.heroBlock}
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
     >
-      {/* Full-bleed photos, or the cinematic video when there are none (or none load) */}
+      {/* Full-bleed photos, or the cinematic video */}
       <div className="absolute inset-0 z-0 bg-flamenco-dark">
-        {images.length > 0 && !photosFailed ? (
-          <HeroPhotos key={photoSet} images={images} lang={lang} onAllFailed={onAllFailed} />
-        ) : (
-          <motion.video
-            initial={{
-              scale: 1.08,
-            }}
-            animate={{
-              scale: 1,
-            }}
-            transition={{
-              duration: 1.6,
-              ease: "easeOut",
-            }}
-            src={block.videoUrl ?? undefined}
-            poster={posterUrl}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover object-center grayscale"
-          />
-        )}
+        <HeroBackground
+          key={photoSet}
+          images={images}
+          lang={lang}
+          videoUrl={block.videoUrl ?? undefined}
+          posterUrl={posterUrl}
+        />
         {/* Even cinematic scrim for legibility */}
         <div className="absolute inset-0 bg-flamenco-dark/50"></div>
         {/* Subtle top & bottom anchoring so text always reads */}

@@ -14,9 +14,17 @@ body {
 }
 h1, h2, h3, h4, h5, h6 { @apply font-serif; }
 
-/* Hero photo push-in (components/blocks/Hero.tsx). CSS, not framer, so it can
-   be paused with animation-play-state. */
+/* Hero photo push-in and crossfade (components/blocks/Hero.tsx). CSS, not
+   framer, so both can be paused with animation-play-state. */
 @keyframes hero-push {
   from { transform: scale(1); }
   to { transform: scale(1.1); }
+}
+@keyframes hero-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hero-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }

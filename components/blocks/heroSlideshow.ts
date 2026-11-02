@@ -75,9 +75,11 @@ export function slideshowReducer(state: SlideshowState, action: SlideshowAction)
     }
     case "failed": {
       if (state.failed.includes(action.key)) return state;
-      const next = { ...state, failed: [...state.failed, action.key] };
-      // A broken current photo is replaced as soon as the next one is ready.
-      return state.waiting || action.key === state.current.key ? advanceWhenReady(next, action.photos) : next;
+      const currentBroke = action.key === state.current.key;
+      // A broken current photo is replaced as soon as the next one is ready
+      // (marked waiting, so this also happens on resume after a pause).
+      const next = { ...state, failed: [...state.failed, action.key], waiting: state.waiting || currentBroke };
+      return next.waiting ? advanceWhenReady(next, action.photos) : next;
     }
     case "pause":
       return { ...state, paused: true };
