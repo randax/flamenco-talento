@@ -2,6 +2,7 @@ import {
   defineField,
   type ObjectDefinition,
   type PrepareViewOptions,
+  type PreviewConfig,
   type PreviewValue,
 } from "sanity";
 
@@ -14,18 +15,23 @@ const hiddenField = defineField({
 });
 
 /**
+ * A block whose preview has its own `prepare`, so the "Skjult" label can be
+ * added to whatever it returns. Every page-builder block defines one.
+ */
+type BlockWithPreview = ObjectDefinition & {
+  preview: PreviewConfig & { prepare: NonNullable<PreviewConfig["prepare"]> };
+};
+
+/**
  * Gives a page-builder block an on/off switch. Hidden blocks stay in the page's
  * block list (marked "Skjult" in the preview) but are filtered out by the page
  * queries in sanity/lib/queries.ts, so they never reach the site.
  */
-export function hideable(block: ObjectDefinition): ObjectDefinition {
-  const fields = [hiddenField, ...block.fields];
-  // No custom preview: keep Sanity's default rather than replacing it with an empty one.
-  if (!block.preview?.prepare) return { ...block, fields };
+export function hideable(block: BlockWithPreview): ObjectDefinition {
   const { select = {}, prepare } = block.preview;
   return {
     ...block,
-    fields,
+    fields: [hiddenField, ...block.fields],
     preview: {
       ...block.preview,
       select: { ...select, hidden: "hidden" },

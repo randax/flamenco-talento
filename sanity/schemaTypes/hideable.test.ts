@@ -47,16 +47,15 @@ describe("hideable", () => {
     });
   });
 
-  it("leaves Sanity's default preview alone for blocks without one", () => {
-    const plain = hideable(
-      defineType({
-        name: "plainBlock",
-        type: "object",
-        fields: [defineField({ name: "heading", type: "string" })],
-      }),
-    );
-    expect(plain.preview).toBeUndefined();
-    expect(plain.fields.map((f) => f.name)).toEqual(["hidden", "heading"]);
+  it("only accepts blocks whose preview has a prepare", () => {
+    const selectOnly = defineType({
+      name: "selectOnlyBlock",
+      type: "object",
+      fields: [defineField({ name: "heading", type: "string" })],
+      preview: { select: { title: "heading" } },
+    });
+    // @ts-expect-error a select-only preview would lose the "Skjult" label
+    hideable(selectOnly);
   });
 
   it("shows just Skjult when the block has no subtitle", () => {
