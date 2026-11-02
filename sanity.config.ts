@@ -47,8 +47,16 @@ export default defineConfig({
             filter: `_type == "newsPost" && slug.current == $slug && language == $lang`,
           },
           {
-            route: "/:lang/:slug",
+            // `:slug+` spans nested slugs (`/en/classes/beginners`) like the
+            // site's [[...slug]] route; Presentation passes repeated params as
+            // an array, so join them back into the stored slug. The news index
+            // (`/:lang/nyheter`) lists many documents and has no main document.
+            route: "/:lang/:slug+",
             filter: `_type == "page" && slug.current == $slug && language == $lang`,
+            params: ({ params }) => ({
+              lang: params.lang,
+              slug: ([] as string[]).concat(params.slug).join("/"),
+            }),
           },
         ]),
       },
