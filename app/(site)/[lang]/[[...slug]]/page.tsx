@@ -1,10 +1,11 @@
 import { cacheTag } from "next/cache";
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer";
 import { SetAltHref, type AltHref } from "@/components/site/AltHrefContext";
 import { isLang, LANGS, OG_LOCALE, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
+import { pagePath } from "@/lib/links";
 import { client } from "@/sanity/lib/client";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import {
@@ -94,12 +95,9 @@ async function fetchTranslations(id: string): Promise<Translation[]> {
 async function translatedUrls(pageId: string): Promise<Partial<Record<Lang, string>>> {
   const urls: Partial<Record<Lang, string>> = {};
   for (const tr of await fetchTranslations(pageId)) {
-    if (!isLang(tr.language ?? "")) continue;
-    if (tr.isFrontPage) {
-      urls[tr.language as Lang] = `/${tr.language}`;
-    } else if (tr.slug) {
-      urls[tr.language as Lang] = `/${tr.language}/${tr.slug}`;
-    }
+    if (!tr.language || !isLang(tr.language)) continue;
+    const path = pagePath(tr.language, tr.slug, tr.isFrontPage);
+    if (path) urls[tr.language] = path;
   }
   return urls;
 }
@@ -170,11 +168,13 @@ export default async function CatchAllPage({
   }
 
   // The front page also matches its own slug (`/no/forside`); serve it only at
-  // the locale root so there is one URL per page. This is an HTTP 308 only
-  // because the route renders blocking (no Suspense/loading.tsx above it); add
-  // one and Next downgrades it to a client-side <meta refresh> redirect.
+  // the locale root so there is one URL per page. Temporary (307), not 308:
+  // editors can make another page the front page, and browsers cache a 308
+  // indefinitely. This is an HTTP redirect only because the route renders
+  // blocking (no Suspense/loading.tsx above it); add one and Next downgrades
+  // it to a client-side <meta refresh> redirect.
   if (joinedSlug && page.isFrontPage) {
-    permanentRedirect(`/${lang}`);
+    redirect(`/${lang}`);
   }
 
   // Publish translated targets to the layout-level LanguageSwitcher so it points

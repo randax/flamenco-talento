@@ -43,3 +43,16 @@ export function languageHref(
   // A news post without a known translation: the news index is the closest page.
   return rest.startsWith("/nyheter/") ? `/${target}/nyheter` : `/${target}`;
 }
+
+/**
+ * URL of a CMS page: a front page lives at the locale root (its own slug
+ * redirects there), every other page at its slug.
+ */
+export function pagePath(
+  lang: Lang,
+  slug: string | null | undefined,
+  isFrontPage: boolean | null | undefined,
+): string | undefined {
+  if (isFrontPage) return `/${lang}`;
+  return slug ? `/${lang}/${slug}` : undefined;
+}

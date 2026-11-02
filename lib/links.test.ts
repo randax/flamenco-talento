@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { languageHref, navHref } from "./links";
+import { languageHref, navHref, pagePath } from "./links";
 
 describe("navHref", () => {
   it("points section anchors at the front page of the current language", () => {
@@ -66,5 +66,20 @@ describe("languageHref", () => {
 
   it("falls back when the page has no translation in the target language", () => {
     expect(languageHref("/en/about", "no", { en: "/en/about" })).toBe("/no");
+  });
+});
+
+describe("pagePath", () => {
+  it("serves a front page at the locale root", () => {
+    expect(pagePath("en", "home", true)).toBe("/en");
+  });
+
+  it("serves other pages at their slug", () => {
+    expect(pagePath("no", "om-oss", false)).toBe("/no/om-oss");
+    expect(pagePath("no", "om-oss", null)).toBe("/no/om-oss");
+  });
+
+  it("has no URL for a page without a slug", () => {
+    expect(pagePath("no", null, false)).toBeUndefined();
   });
 });

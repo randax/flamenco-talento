@@ -2,7 +2,7 @@ import React from "react";
 import { stegaClean } from "next-sanity";
 import type { Lang } from "@/lib/i18n";
 import { navHref } from "@/lib/links";
-import { sectionIds } from "@/components/blocks/sections";
+import { SECTION_ID, sectionIds } from "@/components/blocks/sections";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { LATEST_NEWS_QUERY } from "@/sanity/lib/queries";
 import { Hero } from "@/components/blocks/Hero";
@@ -113,7 +113,7 @@ export async function BlockRenderer({
           case "timeplanBlock":
             return <Timeplan key={block._key} block={block} />;
           case "prisBlock":
-            return <Pris key={block._key} block={block} contactHref={link("#kontakt")} />;
+            return <Pris key={block._key} block={block} contactHref={link(`#${SECTION_ID.signupFormBlock}`)} />;
           case "galleryBlock":
             return <Gallery key={block._key} block={block} />;
           case "nyheterBlock":

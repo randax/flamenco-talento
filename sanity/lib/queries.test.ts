@@ -30,7 +30,9 @@ const dataset = [
   },
   { _id: "class-1", _type: "classItem", name: "Nybegynner" },
   { _id: "page-om", _type: "page", language: "no", slug: { current: "om-oss" }, blocks: [] },
-  { _id: "page-en", _type: "page", language: "en", slug: { current: "home" }, blocks: [] },
+  // Mirrors scripts/seed.ts: each language has its own front page.
+  { _id: "page-en", _type: "page", language: "en", isFrontPage: true, slug: { current: "home" }, blocks: [] },
+  { _id: "page-kurs", _type: "page", language: "en", isFrontPage: false, slug: { current: "classes" }, blocks: [] },
   {
     _id: "tm-1",
     _type: "translation.metadata",
@@ -67,7 +69,7 @@ describe("page queries", () => {
     const result = await evaluate(parse(PAGE_SLUGS_QUERY), { dataset });
     expect(await result.get()).toEqual([
       { slug: "om-oss", language: "no" },
-      { slug: "home", language: "en" },
+      { slug: "classes", language: "en" },
     ]);
   });
 
@@ -80,7 +82,7 @@ describe("page queries", () => {
     const result = await evaluate(parse(TRANSLATIONS_QUERY), { dataset, params: { id: "page-no" } });
     expect(await result.get()).toEqual([
       { language: "no", slug: "hjem", isFrontPage: true },
-      { language: "en", slug: "home", isFrontPage: null },
+      { language: "en", slug: "home", isFrontPage: true },
     ]);
   });
 });
