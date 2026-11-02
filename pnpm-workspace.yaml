@@ -1,3 +1,9 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# Security overrides for vulnerable transitive pins (Dependabot)
+overrides:
+  js-yaml@3: ^3.15.2
+  smol-toml@1: ^1.7.1
+  undici@7: ^7.30.1
