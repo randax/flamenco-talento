@@ -25,8 +25,9 @@ export default defineConfig({
       schemaTypes: ["page", "newsPost", "classItem", "pricingPlan", "teacher", "siteSettings"],
     }),
     presentationTool({
+      // No `origin`: it defaults to the Studio's own location, which is the
+      // site itself since the Studio is embedded at /studio.
       previewUrl: {
-        origin: process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? "http://localhost:3000",
         previewMode: {
           enable: "/api/draft-mode/enable",
         },

@@ -1,3 +1,4 @@
+import { draftMode } from "next/headers";
 import { defineLive } from "next-sanity/live";
 import { client } from "./client";
 
@@ -8,11 +9,28 @@ import { client } from "./client";
 // and `<SanityLive />` still work.
 const token = process.env.SANITY_API_READ_TOKEN;
 
-export const { sanityFetch, SanityLive } = defineLive({
+const { sanityFetch: liveFetch, SanityLive } = defineLive({
   client,
   serverToken: token,
   browserToken: token,
 });
+
+export { SanityLive };
+
+type FetchOptions = Omit<Parameters<typeof liveFetch>[0], "perspective" | "stega">;
+
+/**
+ * `sanityFetch` that reads drafts while Draft Mode is on (i.e. inside the
+ * Presentation tool) and published content otherwise. Call it inside a
+ * `'use cache'` boundary: Next lets `draftMode()` be read there, and re-runs
+ * cached scopes on every request while Draft Mode is on, so drafts are never
+ * cached. Stega (click-to-edit overlays) stays off: it would encode CMS strings
+ * the site compares and groups on.
+ */
+export async function sanityFetch(options: FetchOptions) {
+  const { isEnabled } = await draftMode();
+  return liveFetch({ ...options, perspective: isEnabled ? "drafts" : "published", stega: false });
+}
 
 /**
  * Cache tag for a given document `_type`, applied to `sanityFetch` calls via
