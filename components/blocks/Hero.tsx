@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import Image, { type ImageLoader } from "next/image";
+import { Pause, Play } from "lucide-react";
 import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
 import { hotspotPosition, urlFor } from "@/sanity/lib/image";
 import type { HeroBlock, HeroImage } from "@/components/blocks/types";
 import { SECTION_ID } from "@/components/blocks/sections";
+import { initialSlideshow, nextSlide, slideId, slideshowReducer, type Slide } from "@/components/blocks/heroSlideshow";
+import { dict } from "@/lib/dictionary";
+import type { Lang } from "@/lib/i18n";
 
 const SLIDE_S = 6;
 const FADE_S = 1.6;
-const ZOOM = 1.1;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const noSubscribe = () => () => {};
 
@@ -37,110 +40,149 @@ function useHydrated(): boolean {
 
 // Full-bleed photos that dissolve into each other, each slowly pushing in
 // (Ken Burns), in black and white like the video. Every photo starts at its
-// natural size, so the server HTML is the same still frame for everyone. A
-// single photo stays still; with reduced motion the hero shows the first
-// photo, still.
+// natural size, so the server HTML is the same still frame for everyone. One
+// photo, or reduced motion, shows the first photo still. Visitors can pause.
 //
-// Each slide lives through one cycle, keyed by its step: mounted as "next"
-// (hidden, preloading), then "current" (fades in, pushes in), then "previous"
-// (keeps pushing in while it fades out), then unmounted. The slideshow only
-// advances once the next photo has loaded; photos that fail to load drop out.
-function HeroPhotos({ images }: { images: HeroImage[] }) {
+// Each slide lives one cycle: mounted as "next" (hidden, preloading), then
+// "current" (fades in, pushes in), then "previous" (keeps pushing in while it
+// fades out). The slideshow advances only once the next photo has loaded; the
+// push-in pauses while it waits, so there is zoom left for the fade. The
+// rules live in heroSlideshow.ts.
+function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: Lang; onAllFailed: () => void }) {
+  const t = dict(lang);
   const reduceMotion = usePrefersReducedMotion();
   const hydrated = useHydrated();
-  const [failed, setFailed] = useState<string[]>([]);
-  const shown = useMemo(() => images.filter((image) => !failed.includes(image._key)), [images, failed]);
-  const n = shown.length;
-  const slideshow = n > 1 && !reduceMotion;
-  const [step, setStep] = useState(0);
-  const loaded = useRef(new Set<string>());
+  const [state, dispatch] = useReducer(slideshowReducer, images, initialSlideshow);
+  const [paused, setPaused] = useState(false);
+  const visible = images.filter((image) => !state.failed.includes(image._key));
+  const slideshow = visible.length > 1 && !reduceMotion;
+  const allFailed = visible.length === 0;
 
   useEffect(() => {
-    if (!slideshow) return;
-    const timer = setInterval(
-      () => setStep((s) => (loaded.current.has(shown[(s + 1) % n]._key) ? s + 1 : s)),
-      SLIDE_S * 1000,
-    );
-    return () => clearInterval(timer);
-  }, [slideshow, shown, n]);
+    if (allFailed) onAllFailed();
+  }, [allFailed, onAllFailed]);
 
-  if (n === 0) return null;
-  const currentStep = slideshow ? step : 0;
-  const steps = slideshow
-    ? [step - 1, step, step + 1].filter((s) => s >= 0 && (s <= step || hydrated))
-    : [0];
+  // Time left before the next advance; kept across pauses.
+  const remaining = useRef(SLIDE_S * 1000);
+  useEffect(() => {
+    remaining.current = SLIDE_S * 1000;
+  }, [state.current.seq]);
+  useEffect(() => {
+    if (!slideshow || paused || state.waiting) return;
+    const started = performance.now();
+    const timer = setTimeout(() => dispatch({ type: "tick", photos: images }), remaining.current);
+    return () => {
+      clearTimeout(timer);
+      remaining.current = Math.max(0, remaining.current - (performance.now() - started));
+    };
+  }, [slideshow, paused, state.waiting, state.current.seq, images]);
+
+  if (allFailed) return null;
+  const next = slideshow && hydrated ? nextSlide(state, images) : null;
+  const slides: { slide: Slide; role: "previous" | "current" | "next" }[] = slideshow
+    ? [
+        ...(state.previous ? [{ slide: state.previous, role: "previous" as const }] : []),
+        { slide: state.current, role: "current" as const },
+        ...(next ? [{ slide: next, role: "next" as const }] : []),
+      ]
+    : [{ slide: { key: visible[0]._key, seq: 0 }, role: "current" }];
 
   return (
     <>
-      {steps.map((s) => {
-        const image = shown[s % n];
-        const role = s === currentStep ? "current" : s < currentStep ? "previous" : "next";
+      {slides.map(({ slide, role }) => {
+        const image = images.find((i) => i._key === slide.key);
+        if (!image) return null;
+        const id = slideId(slide);
         // Sanity's CDN resizes and picks the format, so Next doesn't re-encode.
         const loader: ImageLoader = ({ width, quality }) =>
           urlFor(image).width(width).quality(quality ?? 75).auto("format").url();
+        // Starts with the timer (after hydration), so the zoom and the
+        // crossfade stay in step.
+        const pushing = slideshow && hydrated && role !== "next";
         return (
           <motion.div
-            key={`${image._key}-${s}`}
+            key={id}
             aria-hidden={role !== "current"}
             className="absolute inset-0"
-            initial={{ opacity: role === "current" ? 1 : 0, scale: 1 }}
-            animate={{
-              opacity: role === "current" ? 1 : 0,
-              scale: slideshow && role !== "next" ? ZOOM : 1,
-            }}
-            transition={{
-              opacity: { duration: FADE_S },
-              // One steady push across showing and fading out.
-              scale:
-                !slideshow || role === "next"
-                  ? { duration: 0 }
-                  : { duration: role === "current" ? SLIDE_S + FADE_S : FADE_S, ease: "linear" },
-            }}
+            initial={{ opacity: role === "current" ? 1 : 0 }}
+            animate={{ opacity: role === "current" ? 1 : 0 }}
+            transition={{ duration: FADE_S }}
           >
-            <Image
-              loader={loader}
-              src={urlFor(image).url()}
-              alt={image.alt ?? ""}
-              fill
-              sizes="100vw"
-              loading={s === 0 ? "eager" : "lazy"}
-              fetchPriority={s === 0 ? "high" : "auto"}
-              onLoad={() => loaded.current.add(image._key)}
-              onError={() => setFailed((f) => (f.includes(image._key) ? f : [...f, image._key]))}
-              className="object-cover grayscale"
-              style={{ objectPosition: hotspotPosition(image) }}
-            />
+            <div
+              className="absolute inset-0"
+              style={
+                pushing
+                  ? {
+                      animation: `hero-push ${SLIDE_S + FADE_S}s linear forwards`,
+                      animationPlayState: paused || (role === "current" && state.waiting) ? "paused" : "running",
+                    }
+                  : undefined
+              }
+            >
+              <Image
+                loader={loader}
+                src={urlFor(image).url()}
+                alt={image.alt ?? ""}
+                fill
+                sizes="100vw"
+                loading={slide.seq === 0 ? "eager" : "lazy"}
+                fetchPriority={slide.seq === 0 ? "high" : "auto"}
+                // A photo that broke before hydration still reports onLoad,
+                // so check that it actually has pixels.
+                onLoad={(e) =>
+                  e.currentTarget.naturalWidth > 0
+                    ? dispatch({ type: "loaded", id, photos: images })
+                    : dispatch({ type: "failed", key: image._key, photos: images })
+                }
+                onError={() => dispatch({ type: "failed", key: image._key, photos: images })}
+                className="object-cover grayscale"
+                style={{ objectPosition: hotspotPosition(image) }}
+              />
+            </div>
           </motion.div>
         );
       })}
       {slideshow && (
-        <div aria-hidden className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-          {shown.map((image, k) => (
-            <span
-              key={image._key}
-              className={`h-px w-10 transition-colors duration-700 ${k === step % n ? "bg-white" : "bg-white/25"}`}
-            />
-          ))}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4">
+          <div aria-hidden className="flex gap-2">
+            {visible.map((image) => (
+              <span
+                key={image._key}
+                className={`h-px w-10 transition-colors duration-700 ${image._key === state.current.key ? "bg-white" : "bg-white/25"}`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? t.playSlideshow : t.pauseSlideshow}
+            className="p-1.5 text-white/60 hover:text-white focus-visible:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white transition-colors"
+          >
+            {paused ? <Play size={14} /> : <Pause size={14} />}
+          </button>
         </div>
       )}
     </>
   );
 }
 
-export function Hero({ block }: { block: HeroBlock }) {
+export function Hero({ block, lang }: { block: HeroBlock; lang: Lang }) {
   const posterUrl = block.poster ? urlFor(block.poster).width(1600).url() : undefined;
-  // An image whose upload hasn't finished has no asset yet.
-  const images = (block.images ?? []).filter((image) => image.asset);
+  // An image whose upload hasn't finished has no asset yet. Memoised so live
+  // content refreshes don't restart the slideshow timer.
+  const images = useMemo(() => (block.images ?? []).filter((image) => image.asset), [block.images]);
+  const [photosFailed, setPhotosFailed] = useState(false);
+  const onAllFailed = useCallback(() => setPhotosFailed(true), []);
 
   return (
     <section
       id={SECTION_ID.heroBlock}
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
     >
-      {/* Full-bleed photos, or the cinematic video when there are none */}
+      {/* Full-bleed photos, or the cinematic video when there are none (or none load) */}
       <div className="absolute inset-0 z-0 bg-flamenco-dark">
-        {images.length > 0 ? (
-          <HeroPhotos images={images} />
+        {images.length > 0 && !photosFailed ? (
+          <HeroPhotos images={images} lang={lang} onAllFailed={onAllFailed} />
         ) : (
           <motion.video
             initial={{

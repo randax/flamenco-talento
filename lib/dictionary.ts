@@ -3,6 +3,8 @@ import type { Lang } from "@/lib/i18n";
 export type Dictionary = {
   openMenu: string;
   closeMenu: string;
+  pauseSlideshow: string;
+  playSlideshow: string;
   readMore: string;
   backToNews: string;
   newsPageTitle: string;
@@ -26,6 +28,8 @@ const dictionaries: Record<Lang, Dictionary> = {
   no: {
     openMenu: "Åpne meny",
     closeMenu: "Lukk meny",
+    pauseSlideshow: "Pause bildeserien",
+    playSlideshow: "Spill av bildeserien",
     readMore: "Les mer",
     backToNews: "Tilbake til nyheter",
     newsPageTitle: "Nyheter",
@@ -47,6 +51,8 @@ const dictionaries: Record<Lang, Dictionary> = {
   en: {
     openMenu: "Open menu",
     closeMenu: "Close menu",
+    pauseSlideshow: "Pause slideshow",
+    playSlideshow: "Play slideshow",
     readMore: "Read more",
     backToNews: "Back to news",
     newsPageTitle: "News",

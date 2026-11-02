@@ -97,6 +97,7 @@ export async function BlockRenderer({
             return (
               <Hero
                 key={block._key}
+                lang={lang}
                 block={{
                   ...block,
                   primaryCta: cta(block.primaryCta),

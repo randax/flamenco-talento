@@ -13,3 +13,10 @@ body {
   @apply bg-flamenco-dark text-flamenco-light font-sans antialiased selection:bg-flamenco-red selection:text-white;
 }
 h1, h2, h3, h4, h5, h6 { @apply font-serif; }
+
+/* Hero photo push-in (components/blocks/Hero.tsx). CSS, not framer, so it can
+   be paused with animation-play-state. */
+@keyframes hero-push {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
