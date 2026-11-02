@@ -15,6 +15,7 @@ import { pricingPlan } from "./documents/pricingPlan";
 import { siteSettings } from "./documents/siteSettings";
 import { submission } from "./documents/submission";
 import { teacher } from "./documents/teacher";
+import { hideable } from "./hideable";
 
 export const schemaTypes = [
   // Documents
@@ -26,14 +27,16 @@ export const schemaTypes = [
   teacher,
   siteSettings,
   submission,
-  // Page-builder blocks
-  heroBlock,
-  marqueeBlock,
-  aboutBlock,
-  pedagogBlock,
-  timeplanBlock,
-  prisBlock,
-  galleryBlock,
-  nyheterBlock,
-  signupFormBlock,
+  // Page-builder blocks, each with an on/off switch (see ./hideable.ts).
+  ...[
+    heroBlock,
+    marqueeBlock,
+    aboutBlock,
+    pedagogBlock,
+    timeplanBlock,
+    prisBlock,
+    galleryBlock,
+    nyheterBlock,
+    signupFormBlock,
+  ].map(hideable),
 ];

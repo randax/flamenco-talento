@@ -1,9 +1,10 @@
 import { defineQuery } from "next-sanity";
 
 // Blocks expand their references inline so renderers get plain data instead
-// of having to dereference themselves.
+// of having to dereference themselves. Blocks an editor has switched off
+// (`hidden`, see sanity/schemaTypes/hideable.ts) are left out entirely.
 const BLOCKS_PROJECTION = /* groq */ `
-  blocks[]{
+  blocks[hidden != true]{
     ...,
     _type == "heroBlock" => { "videoUrl": video.asset->url },
     _type == "aboutBlock" => { image{ ..., "dimensions": asset->metadata.dimensions } },
