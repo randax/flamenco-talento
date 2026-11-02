@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Image, { type ImageLoader } from "next/image";
 import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
@@ -40,49 +40,61 @@ function useHydrated(): boolean {
 // natural size, so the server HTML is the same still frame for everyone. A
 // single photo stays still; with reduced motion the hero shows the first
 // photo, still.
+//
+// Each slide lives through one cycle, keyed by its step: mounted as "next"
+// (hidden, preloading), then "current" (fades in, pushes in), then "previous"
+// (keeps pushing in while it fades out), then unmounted. The slideshow only
+// advances once the next photo has loaded; photos that fail to load drop out.
 function HeroPhotos({ images }: { images: HeroImage[] }) {
   const reduceMotion = usePrefersReducedMotion();
   const hydrated = useHydrated();
-  const n = images.length;
+  const [failed, setFailed] = useState<string[]>([]);
+  const shown = useMemo(() => images.filter((image) => !failed.includes(image._key)), [images, failed]);
+  const n = shown.length;
   const slideshow = n > 1 && !reduceMotion;
   const [step, setStep] = useState(0);
-  const current = slideshow ? step % n : 0;
+  const loaded = useRef(new Set<string>());
 
   useEffect(() => {
     if (!slideshow) return;
-    const timer = setInterval(() => setStep((s) => s + 1), SLIDE_S * 1000);
+    const timer = setInterval(
+      () => setStep((s) => (loaded.current.has(shown[(s + 1) % n]._key) ? s + 1 : s)),
+      SLIDE_S * 1000,
+    );
     return () => clearInterval(timer);
-  }, [slideshow]);
+  }, [slideshow, shown, n]);
 
-  // Mounted: the photo on screen, the one fading out, and (once the page is
-  // interactive, so it doesn't compete with the first photo) the next one.
-  const mounted = (k: number) =>
-    k === current ||
-    (slideshow && hydrated && k === (step + 1) % n) ||
-    (slideshow && step > 0 && k === (step - 1) % n);
+  if (n === 0) return null;
+  const currentStep = slideshow ? step : 0;
+  const steps = slideshow
+    ? [step - 1, step, step + 1].filter((s) => s >= 0 && (s <= step || hydrated))
+    : [0];
 
   return (
     <>
-      {images.map((image, k) => {
-        if (!mounted(k)) return null;
-        const isCurrent = k === current;
+      {steps.map((s) => {
+        const image = shown[s % n];
+        const role = s === currentStep ? "current" : s < currentStep ? "previous" : "next";
         // Sanity's CDN resizes and picks the format, so Next doesn't re-encode.
         const loader: ImageLoader = ({ width, quality }) =>
           urlFor(image).width(width).quality(quality ?? 75).auto("format").url();
         return (
           <motion.div
-            key={image._key}
-            aria-hidden={!isCurrent}
+            key={`${image._key}-${s}`}
+            aria-hidden={role !== "current"}
             className="absolute inset-0"
-            initial={{ opacity: isCurrent ? 1 : 0, scale: 1 }}
-            animate={{ opacity: isCurrent ? 1 : 0, scale: isCurrent && slideshow ? ZOOM : 1 }}
+            initial={{ opacity: role === "current" ? 1 : 0, scale: 1 }}
+            animate={{
+              opacity: role === "current" ? 1 : 0,
+              scale: slideshow && role !== "next" ? ZOOM : 1,
+            }}
             transition={{
               opacity: { duration: FADE_S },
-              // Push in while showing; reset only once faded out (or at once
-              // if reduced motion is switched on).
-              scale: isCurrent && slideshow
-                ? { duration: SLIDE_S + FADE_S, ease: "linear" }
-                : { delay: slideshow ? FADE_S : 0, duration: 0 },
+              // One steady push across showing and fading out.
+              scale:
+                !slideshow || role === "next"
+                  ? { duration: 0 }
+                  : { duration: role === "current" ? SLIDE_S + FADE_S : FADE_S, ease: "linear" },
             }}
           >
             <Image
@@ -91,8 +103,10 @@ function HeroPhotos({ images }: { images: HeroImage[] }) {
               alt={image.alt ?? ""}
               fill
               sizes="100vw"
-              loading={k === 0 ? "eager" : "lazy"}
-              fetchPriority={k === 0 ? "high" : "auto"}
+              loading={s === 0 ? "eager" : "lazy"}
+              fetchPriority={s === 0 ? "high" : "auto"}
+              onLoad={() => loaded.current.add(image._key)}
+              onError={() => setFailed((f) => (f.includes(image._key) ? f : [...f, image._key]))}
               className="object-cover grayscale"
               style={{ objectPosition: hotspotPosition(image) }}
             />
@@ -101,10 +115,10 @@ function HeroPhotos({ images }: { images: HeroImage[] }) {
       })}
       {slideshow && (
         <div aria-hidden className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-          {images.map((image, k) => (
+          {shown.map((image, k) => (
             <span
               key={image._key}
-              className={`h-px w-10 transition-colors duration-700 ${k === current ? "bg-white" : "bg-white/25"}`}
+              className={`h-px w-10 transition-colors duration-700 ${k === step % n ? "bg-white" : "bg-white/25"}`}
             />
           ))}
         </div>

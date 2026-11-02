@@ -102,9 +102,9 @@ async function main() {
 
   // Published front pages and their drafts, so publishing a draft later
   // doesn't drop the photos.
-  const docs = await client.fetch<{ _id: string; language: Lang; heroKey: string | null; photos: number }[]>(
+  const docs = await client.fetch<{ _id: string; _rev: string; language: Lang; heroKey: string | null; photos: number }[]>(
     `*[_type == "page" && isFrontPage == true && !(_id in path("versions.**"))]{
-      _id, language,
+      _id, _rev, language,
       "heroKey": blocks[_type == "heroBlock"][0]._key,
       "photos": count(blocks[_type == "heroBlock"][0].images)
     }`,
@@ -130,11 +130,20 @@ async function main() {
       hotspot: { _type: "sanity.imageHotspot", ...photo.hotspot, width: 0.4, height: 0.4 },
       alt: photo.alt[doc.language],
     }));
-    transaction.patch(doc._id, (patch) => patch.set({ [`blocks[_key=="${doc.heroKey}"].images`]: images }));
+    // Only if the document hasn't changed since it was read, so an editor's
+    // concurrent change is never overwritten (the commit fails instead).
+    transaction.patch(doc._id, (patch) =>
+      patch.ifRevisionId(doc._rev).set({ [`blocks[_key=="${doc.heroKey}"].images`]: images }),
+    );
     changes++;
     console.log(`  ${WRITE ? "✓" : "·"} ${doc._id} (${doc.language}): ${WRITE ? "" : "would set "}${images.length} photos`);
   }
-  if (WRITE && changes > 0) await transaction.commit();
+  if (WRITE && changes > 0) {
+    await transaction.commit().catch((err: { statusCode?: number }) => {
+      if (err.statusCode === 409) throw new Error("A front page changed while this ran; nothing was written. Run it again.");
+      throw err;
+    });
+  }
 }
 
 main().catch((err) => {
