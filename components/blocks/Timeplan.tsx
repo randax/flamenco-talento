@@ -6,6 +6,7 @@ import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
 import { capitalize } from "@/lib/strings";
 import type { TimeplanBlock, ClassItem } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 const DAY_ORDER = [
   "mandag",
@@ -31,7 +32,7 @@ export function Timeplan({ block }: { block: TimeplanBlock }) {
   const schedule = groupByDay(block.classes ?? []);
 
   return (
-    <section id="timeplan" className="py-24 md:py-32 relative">
+    <section id={SECTION_ID.timeplanBlock} className="py-24 md:py-32 relative">
       <div className="container mx-auto px-6 md:px-12">
         <motion.div
           initial={{

@@ -16,6 +16,23 @@ describe("navHref", () => {
     expect(navHref("#", "en")).toBe("/en");
     expect(navHref(null, "en")).toBe("/en");
   });
+
+  it("normalises anchors editors may type in other forms", () => {
+    expect(navHref(" #om ", "no")).toBe("/no#om");
+    expect(navHref("/#om", "en")).toBe("/en#om");
+  });
+
+  it("makes bare relative paths absolute in the current language", () => {
+    // A relative "om" would resolve against nested slugs like /no/kurs/x.
+    expect(navHref("om-oss", "no")).toBe("/no/om-oss");
+    expect(navHref("mailto:a@b.no", "no")).toBe("mailto:a@b.no");
+  });
+
+  it("keeps an anchor on the page when that section is on the page", () => {
+    const onPage = new Set(["kontakt"]);
+    expect(navHref("#kontakt", "no", onPage)).toBe("#kontakt");
+    expect(navHref("#om", "no", onPage)).toBe("/no#om");
+  });
 });
 
 describe("languageHref", () => {

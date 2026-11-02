@@ -1,3 +1,4 @@
+import { cacheTag } from "next/cache";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -64,6 +65,9 @@ async function fetchPost(slug: string, lang: Lang): Promise<NewsPostDetail | nul
 // the rest of the route is static, which Next rejects).
 async function fetchTranslations(id: string): Promise<Translation[]> {
   "use cache";
+  // Tagged so the revalidate webhook refreshes language links when a
+  // translation is added or a translated slug changes.
+  cacheTag(typeTag("translation.metadata"), typeTag("newsPost"));
   return (await client.fetch<Translation[]>(TRANSLATIONS_QUERY, { id })) ?? [];
 }
 

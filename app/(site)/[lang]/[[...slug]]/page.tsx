@@ -1,3 +1,4 @@
+import { cacheTag } from "next/cache";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer";
@@ -23,7 +24,7 @@ type PageData = {
   blocks: PageBlock[] | null;
 };
 
-type Translation = { language: string | null; slug: string | null };
+type Translation = { language: string | null; slug: string | null; isFrontPage: boolean | null };
 
 type PageSlug = { slug: string; language: string };
 
@@ -78,21 +79,23 @@ async function getPage(
 // `'use cache'` boundary to keep generateMetadata static under Cache Components.
 async function fetchTranslations(id: string): Promise<Translation[]> {
   "use cache";
+  // Tagged so the revalidate webhook refreshes language links when a
+  // translation is added or a translated slug changes.
+  cacheTag(typeTag("translation.metadata"), typeTag("page"));
   return (await client.fetch<Translation[]>(TRANSLATIONS_QUERY, { id })) ?? [];
 }
 
-// Maps each existing translation to its URL. Front-page translations serve at
-// the locale root (`/en`), not at their own slug (`/en/home`); sub-pages use
-// the translated slug. Only languages that actually have a translation are
-// included, so hreflang alternates are never emitted for non-existent pages.
-async function translatedUrls(
-  pageId: string,
-  isFrontPage: boolean,
-): Promise<Partial<Record<Lang, string>>> {
+// Maps each existing translation to its URL. A translation that is its
+// language's front page lives at the locale root (`/en`), not at its own slug
+// (`/en/home`, which redirects); other pages use the translated slug. Decided
+// per translation, since only one side of a pair may be a front page. Only
+// languages that actually have a translation are included, so hreflang
+// alternates are never emitted for non-existent pages.
+async function translatedUrls(pageId: string): Promise<Partial<Record<Lang, string>>> {
   const urls: Partial<Record<Lang, string>> = {};
   for (const tr of await fetchTranslations(pageId)) {
     if (!isLang(tr.language ?? "")) continue;
-    if (isFrontPage) {
+    if (tr.isFrontPage) {
       urls[tr.language as Lang] = `/${tr.language}`;
     } else if (tr.slug) {
       urls[tr.language as Lang] = `/${tr.language}/${tr.slug}`;
@@ -119,7 +122,7 @@ export async function generateMetadata({
   // Only advertise hreflang alternates for languages that actually have a
   // translated page, resolved via the document-internationalization metadata.
   const languages: Record<string, string> = { [lang]: url };
-  const alts = await translatedUrls(page._id, !joinedSlug);
+  const alts = await translatedUrls(page._id);
   for (const [l, p] of Object.entries(alts)) {
     languages[l] = absoluteUrl(p);
   }
@@ -176,7 +179,7 @@ export default async function CatchAllPage({
 
   // Publish translated targets to the layout-level LanguageSwitcher so it points
   // at real translated slugs instead of a blind prefix swap.
-  const altHref: AltHref = await translatedUrls(page._id, !joinedSlug);
+  const altHref: AltHref = await translatedUrls(page._id);
 
   return (
     <main>

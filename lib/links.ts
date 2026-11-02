@@ -1,13 +1,22 @@
 import type { Lang } from "./i18n";
 
 /**
- * Menu links in siteSettings are section anchors (`#om`, `#kontakt`) on the
- * front page. Point them at the front page explicitly so they also work from
- * other pages; on the front page itself `/no#om` still just scrolls.
+ * Links editors enter in Sanity: menu items, block buttons. Section anchors
+ * (`#om`, also typed as `/#om`) point at the front page so they work from
+ * every page, unless `onPage` says that section is rendered on the current
+ * page, where `#om` just scrolls. Bare relative paths become absolute in the
+ * current language; full URLs, `mailto:` and `tel:` pass through.
  */
-export function navHref(href: string | null | undefined, lang: Lang): string {
-  if (!href || href === "#") return `/${lang}`;
-  return href.startsWith("#") ? `/${lang}${href}` : href;
+export function navHref(
+  href: string | null | undefined,
+  lang: Lang,
+  onPage?: ReadonlySet<string>,
+): string {
+  const value = (href ?? "").trim().replace(/^\/#/, "#");
+  if (!value || value === "#") return `/${lang}`;
+  if (value.startsWith("#")) return onPage?.has(value.slice(1)) ? value : `/${lang}${value}`;
+  if (value.startsWith("/") || /^[a-z][a-z\d+.-]*:/i.test(value)) return value;
+  return `/${lang}/${value}`;
 }
 
 // Paths (after the locale) that exist in every language, so swapping the

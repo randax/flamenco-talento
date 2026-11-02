@@ -27,7 +27,7 @@ export const PAGE_QUERY = defineQuery(`
 `);
 
 export const FRONT_PAGE_QUERY = defineQuery(`
-  *[_type == "page" && isFrontPage == true && language == $lang][0]{
+  *[_type == "page" && isFrontPage == true && language == $lang] | order(_updatedAt desc)[0]{
     ${PAGE_FIELDS}
   }
 `);
@@ -85,6 +85,7 @@ export const TRANSLATIONS_QUERY = defineQuery(`
   *[_type == "translation.metadata" && $id in translations[].value._ref][0]
     .translations[]{
       "language": _key,
-      "slug": value->slug.current
+      "slug": value->slug.current,
+      "isFrontPage": value->isFrontPage
     }
 `);

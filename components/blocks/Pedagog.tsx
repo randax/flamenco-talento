@@ -6,13 +6,14 @@ import { motion } from "@/components/site/Motion";
 import { PortableText } from "@/components/site/PortableText";
 import { urlFor } from "@/sanity/lib/image";
 import type { PedagogBlock } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 export function Pedagog({ block }: { block: PedagogBlock }) {
   const teacher = block.teacher;
   const imageUrl = teacher?.image ? urlFor(teacher.image).width(1200).url() : undefined;
 
   return (
-    <section id="pedagog" className="py-24 md:py-32 bg-zinc-900 border-y border-white/5">
+    <section id={SECTION_ID.pedagogBlock} className="py-24 md:py-32 bg-zinc-900 border-y border-white/5">
       <div className="container mx-auto px-6 md:px-12">
         <motion.div
           initial={{

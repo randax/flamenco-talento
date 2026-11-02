@@ -2,6 +2,7 @@ import React from "react";
 import type { Lang } from "@/lib/i18n";
 import type { SignupFormBlock } from "@/components/blocks/types";
 import { SignupForm } from "@/components/blocks/SignupForm";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 export function SignupSection({
   block,
@@ -13,7 +14,7 @@ export function SignupSection({
   interestOptions: string[];
 }) {
   return (
-    <section id="kontakt" className="py-24 md:py-32 bg-zinc-900 border-y border-white/5">
+    <section id={SECTION_ID.signupFormBlock} className="py-24 md:py-32 bg-zinc-900 border-y border-white/5">
       <div className="container mx-auto px-6 md:px-12">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">

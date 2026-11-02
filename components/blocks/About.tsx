@@ -6,6 +6,7 @@ import { motion } from "@/components/site/Motion";
 import { PortableText } from "@/components/site/PortableText";
 import { urlFor } from "@/sanity/lib/image";
 import type { AboutBlock } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 export function About({ block }: { block: AboutBlock }) {
   const dims = block.image?.dimensions;
@@ -14,7 +15,7 @@ export function About({ block }: { block: AboutBlock }) {
   const imageUrl = block.image ? urlFor(block.image).width(1200).url() : undefined;
 
   return (
-    <section id="om" className="py-24 md:py-32 relative overflow-hidden">
+    <section id={SECTION_ID.aboutBlock} className="py-24 md:py-32 relative overflow-hidden">
       <div className="container mx-auto px-6 md:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <motion.div

@@ -1,5 +1,8 @@
 import React from "react";
+import { stegaClean } from "next-sanity";
 import type { Lang } from "@/lib/i18n";
+import { navHref } from "@/lib/links";
+import { sectionIds } from "@/components/blocks/sections";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import { LATEST_NEWS_QUERY } from "@/sanity/lib/queries";
 import { Hero } from "@/components/blocks/Hero";
@@ -12,6 +15,7 @@ import { Gallery } from "@/components/blocks/Gallery";
 import { Nyheter } from "@/components/blocks/Nyheter";
 import { SignupSection } from "@/components/blocks/SignupSection";
 import type {
+  CtaLink,
   NewsPost,
   NyheterBlock,
   PageBlock,
@@ -78,12 +82,28 @@ export async function BlockRenderer({
   // don't maintain the list twice. Empty if the page has neither block.
   const interestOptions = deriveInterestOptions(blocks);
 
+  // Button anchors (`#kontakt`) scroll when that section is on this page and
+  // go to the front page's section otherwise, e.g. on a page without a signup
+  // block, or when an editor has hidden it.
+  const onPage = sectionIds(blocks);
+  const link = (href?: string | null) => navHref(stegaClean(href), lang, onPage);
+  const cta = (value?: CtaLink | null) => value && { ...value, href: link(value.href) };
+
   return (
     <>
       {blocks.map((block) => {
         switch (block._type) {
           case "heroBlock":
-            return <Hero key={block._key} block={block} />;
+            return (
+              <Hero
+                key={block._key}
+                block={{
+                  ...block,
+                  primaryCta: cta(block.primaryCta),
+                  secondaryCta: cta(block.secondaryCta),
+                }}
+              />
+            );
           case "marqueeBlock":
             return <Marquee key={block._key} block={block} />;
           case "aboutBlock":
@@ -93,7 +113,7 @@ export async function BlockRenderer({
           case "timeplanBlock":
             return <Timeplan key={block._key} block={block} />;
           case "prisBlock":
-            return <Pris key={block._key} block={block} />;
+            return <Pris key={block._key} block={block} contactHref={link("#kontakt")} />;
           case "galleryBlock":
             return <Gallery key={block._key} block={block} />;
           case "nyheterBlock":
