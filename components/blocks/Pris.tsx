@@ -4,12 +4,15 @@ import React from "react";
 import { Check } from "lucide-react";
 import { motion } from "@/components/site/Motion";
 import type { PrisBlock } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
-export function Pris({ block }: { block: PrisBlock }) {
+// `contactHref` is resolved by BlockRenderer: `#kontakt` when the signup
+// section is on this page, the front page's section otherwise.
+export function Pris({ block, contactHref }: { block: PrisBlock; contactHref: string }) {
   const plans = block.plans ?? [];
 
   return (
-    <section id="pris" className="py-24 md:py-32 bg-zinc-900 border-y border-white/5">
+    <section id={SECTION_ID.prisBlock} className="py-24 md:py-32 bg-zinc-900 border-y border-white/5">
       <div className="container mx-auto px-6 md:px-12">
         <motion.div
           initial={{
@@ -72,7 +75,7 @@ export function Pris({ block }: { block: PrisBlock }) {
               </ul>
 
               <a
-                href="#kontakt"
+                href={contactHref}
                 className={`text-center py-3 font-medium tracking-widest uppercase text-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${plan.highlighted ? "bg-white text-flamenco-red hover:bg-zinc-100 hover:shadow-white/20" : "bg-white/10 hover:bg-flamenco-red hover:text-white hover:shadow-red-900/50"}`}
               >
                 {block.ctaLabelPrefix} {plan.title}

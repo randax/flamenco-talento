@@ -16,7 +16,7 @@ const BLOCKS_PROJECTION = /* groq */ `
 `;
 
 const PAGE_FIELDS = /* groq */ `
-  _id, title, seoDescription, "slug": slug.current, language,
+  _id, title, seoDescription, "slug": slug.current, language, isFrontPage,
   ${BLOCKS_PROJECTION}
 `;
 
@@ -27,7 +27,7 @@ export const PAGE_QUERY = defineQuery(`
 `);
 
 export const FRONT_PAGE_QUERY = defineQuery(`
-  *[_type == "page" && isFrontPage == true && language == $lang][0]{
+  *[_type == "page" && isFrontPage == true && language == $lang] | order(_updatedAt desc)[0]{
     ${PAGE_FIELDS}
   }
 `);
@@ -69,8 +69,10 @@ export const NEWS_SLUGS_QUERY = defineQuery(`
   }
 `);
 
+// Front pages are served at the locale root (`/no`), so their slugs are left
+// out of static params and the sitemap; `/no/forside` redirects to `/no`.
 export const PAGE_SLUGS_QUERY = defineQuery(`
-  *[_type == "page" && defined(slug.current)]{
+  *[_type == "page" && defined(slug.current) && isFrontPage != true]{
     "slug": slug.current,
     language
   }
@@ -83,6 +85,7 @@ export const TRANSLATIONS_QUERY = defineQuery(`
   *[_type == "translation.metadata" && $id in translations[].value._ref][0]
     .translations[]{
       "language": _key,
-      "slug": value->slug.current
+      "slug": value->slug.current,
+      "isFrontPage": value->isFrontPage
     }
 `);

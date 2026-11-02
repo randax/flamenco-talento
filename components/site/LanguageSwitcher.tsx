@@ -5,21 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LANGS, type Lang } from "@/lib/i18n";
 import { useAltHref } from "@/components/site/AltHrefContext";
+import { languageHref } from "@/lib/links";
 
-// Swaps the locale prefix on the current path. Pages whose translated URL
-// differs from a plain prefix swap (e.g. a news post with per-locale slugs)
-// publish per-language targets via AltHrefContext (SetAltHref); those win.
+// Pages publish their translated URLs via AltHrefContext (SetAltHref). That
+// only arrives after hydration, so the server-rendered links (and any page
+// without a translation) use `languageHref`'s safe fallback, never a guessed
+// slug that may 404.
 export function LanguageSwitcher({ lang }: { lang: Lang }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? `/${lang}`;
   const altHref = useAltHref();
-
-  const hrefFor = (target: Lang) => {
-    if (altHref?.[target]) return altHref[target]!;
-    const segments = (pathname ?? `/${lang}`).split("/");
-    // segments[0] is "" (leading slash), segments[1] is the current locale.
-    segments[1] = target;
-    return segments.join("/") || `/${target}`;
-  };
+  const hrefFor = (target: Lang) => languageHref(pathname, target, altHref);
 
   return (
     <div className="flex items-center gap-2 text-sm font-medium tracking-widest uppercase">

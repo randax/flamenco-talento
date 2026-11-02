@@ -5,13 +5,14 @@ import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
 import { urlFor } from "@/sanity/lib/image";
 import type { HeroBlock } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 export function Hero({ block }: { block: HeroBlock }) {
   const posterUrl = block.poster ? urlFor(block.poster).width(1600).url() : undefined;
 
   return (
     <section
-      id="hjem"
+      id={SECTION_ID.heroBlock}
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
     >
       {/* Full-bleed cinematic video */}

@@ -7,13 +7,14 @@ import { motion, AnimatePresence } from "@/components/site/Motion";
 import { Logo } from "@/components/site/Logo";
 import { LanguageSwitcher } from "@/components/site/LanguageSwitcher";
 import { dict } from "@/lib/dictionary";
+import { navHref } from "@/lib/links";
 import type { Lang } from "@/lib/i18n";
 import type { SiteSettings } from "@/components/blocks/types";
 
 type NavLink = { label?: string | null; href?: string | null };
 
-function isKontakt(link: NavLink) {
-  return (link.href ?? "").toLowerCase().includes("kontakt");
+function isKontakt(link: NavLink & { rawHref?: string | null }) {
+  return (link.rawHref ?? "").toLowerCase().includes("kontakt");
 }
 
 export function Header({ settings, lang }: { settings: SiteSettings | null; lang: Lang }) {
@@ -31,10 +32,12 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
 
   // Clean stega encoding off CMS hrefs so anchor targets (#kontakt etc.)
   // match section ids under visual editing, and href-based logic works.
-  const navLinks = (settings?.navLinks ?? []).map((link) => ({
-    ...link,
-    href: stegaClean(link.href),
-  }));
+  // `rawHref` keeps the CMS value for the "is this the contact link" check;
+  // `href` points section anchors at the front page so they work everywhere.
+  const navLinks = (settings?.navLinks ?? []).map((link) => {
+    const rawHref = stegaClean(link.href);
+    return { ...link, rawHref, href: navHref(rawHref, lang) };
+  });
   const ctaLink = navLinks.find(isKontakt);
   const primaryLinks = navLinks.filter((link) => link !== ctaLink);
 
@@ -43,7 +46,7 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "bg-flamenco-dark/95 backdrop-blur-md py-4 shadow-lg shadow-black/50 border-b border-white/5" : "bg-transparent py-6"}`}
     >
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
-        <a href="#hjem" className="text-2xl md:text-3xl hover:opacity-80 transition-opacity">
+        <a href={navHref("#hjem", lang)} className="text-2xl md:text-3xl hover:opacity-80 transition-opacity">
           <Logo iconSize={28} />
         </a>
 
@@ -51,8 +54,8 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
         <nav className="hidden md:flex items-center gap-8">
           {primaryLinks.map((link) => (
             <a
-              key={link.href ?? link.label}
-              href={link.href ?? "#"}
+              key={`${link.label}|${link.href}`}
+              href={link.href}
               className="text-sm font-medium tracking-widest uppercase text-flamenco-light/80 hover:text-white hover:underline underline-offset-8 decoration-flamenco-red transition-all"
             >
               {link.label}
@@ -60,7 +63,7 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
           ))}
           {ctaLink && (
             <a
-              href={ctaLink.href ?? "#kontakt"}
+              href={ctaLink.href}
               className="px-6 py-2 border border-flamenco-red text-flamenco-red hover:bg-flamenco-red hover:text-white transition-colors text-sm font-medium tracking-widest uppercase"
             >
               {ctaLink.label}
@@ -109,8 +112,8 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
             <nav className="flex flex-col items-center justify-center flex-1 gap-8">
               {primaryLinks.map((link) => (
                 <a
-                  key={link.href ?? link.label}
-                  href={link.href ?? "#"}
+                  key={`${link.label}|${link.href}`}
+                  href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-2xl font-serif tracking-widest uppercase text-white hover:text-flamenco-red transition-colors"
                 >
@@ -119,7 +122,7 @@ export function Header({ settings, lang }: { settings: SiteSettings | null; lang
               ))}
               {ctaLink && (
                 <a
-                  href={ctaLink.href ?? "#kontakt"}
+                  href={ctaLink.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className="mt-4 px-8 py-3 bg-flamenco-red text-white text-lg font-medium tracking-widest uppercase"
                 >

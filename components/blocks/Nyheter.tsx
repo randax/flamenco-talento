@@ -8,6 +8,7 @@ import { NewsCard } from "@/components/blocks/NewsCard";
 import { splitFeaturedNews } from "@/lib/news";
 import type { Lang } from "@/lib/i18n";
 import type { NyheterBlock, NewsPost } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 export function Nyheter({
   block,
@@ -21,7 +22,7 @@ export function Nyheter({
   const { featured, rest } = splitFeaturedNews(posts);
 
   return (
-    <section id="nyheter" className="py-24 md:py-32 relative">
+    <section id={SECTION_ID.nyheterBlock} className="py-24 md:py-32 relative">
       <div className="container mx-auto px-6 md:px-12">
         <motion.div
           initial={{

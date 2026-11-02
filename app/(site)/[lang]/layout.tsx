@@ -47,7 +47,7 @@ export default async function LangLayout({
         <AltHrefProvider>
           <Header settings={settings} lang={lang} />
           {children}
-          <Footer settings={settings} />
+          <Footer settings={settings} lang={lang} />
         </AltHrefProvider>
       </TRPCProvider>
       <LivePreview />

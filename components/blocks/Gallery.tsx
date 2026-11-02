@@ -6,6 +6,7 @@ import { stegaClean } from "next-sanity";
 import { motion } from "@/components/site/Motion";
 import { urlFor } from "@/sanity/lib/image";
 import type { GalleryBlock, GalleryImage } from "@/components/blocks/types";
+import { SECTION_ID } from "@/components/blocks/sections";
 
 const SIZE_CLASSES: Record<NonNullable<GalleryImage["size"]>, string> = {
   large: "col-span-1 md:col-span-2 row-span-2",
@@ -17,7 +18,7 @@ export function Gallery({ block }: { block: GalleryBlock }) {
   const images = block.images ?? [];
 
   return (
-    <section id="galleri" className="py-24 md:py-32 relative bg-zinc-950">
+    <section id={SECTION_ID.galleryBlock} className="py-24 md:py-32 relative bg-zinc-950">
       {/* Abstract background art */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-flamenco-red/5 rounded-full blur-3xl"></div>

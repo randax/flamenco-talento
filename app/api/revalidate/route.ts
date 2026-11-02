@@ -25,28 +25,9 @@
  * that `type:<_type>` tag — it can't target the opaque internal `sanity:*`
  * sync tags, which are exclusively driven by the live SSE connection.
  *
- * KNOWN GAP: `sanityFetch`'s `cacheTag()`/`cacheLife()` calls (inside
- * next-sanity, called from sanity/lib/live.ts) throw at request time unless
- * BOTH of the following hold — neither does today:
- *   1. `cacheComponents: true` is set in next.config.ts (`cacheTag()` throws
- *      "only available with the `cacheComponents` config" without it), AND
- *   2. every `sanityFetch` call site runs inside a `'use cache'`-annotated
- *      boundary — `cacheTag()` also throws "can only be called inside a
- *      \"use cache\" function" when invoked from a plain request-scoped
- *      render (see next/dist/server/use-cache/cache-tag.js). That means the
- *      catch-all page, the [lang] layout, and the nyheter list + detail
- *      pages must be restructured per next-sanity 13's documented pattern:
- *      resolve dynamic values (params, cookies, draftMode) outside the
- *      boundary, then pass them into a `'use cache'` component that calls
- *      `sanityFetch` — see the CachedPage example in
- *      node_modules/next-sanity/dist/live/conditions/next-js/index.d.ts.
- * This is a pre-existing gap from before this task (not introduced by this
- * route), currently masked because the placeholder Sanity project id makes
- * `client.fetch` throw first, which every call site catches. Once a real
- * Sanity project is connected, both halves must land together (a repo-wide
- * behavioral change needing its own verification pass) or this
- * tagging/revalidation path will throw. Flagging for follow-up, not fixing
- * here.
+ * Every `sanityFetch` call site runs inside a `'use cache'` boundary with
+ * `cacheComponents: true` (next.config.ts), so `cacheTag()`/`cacheLife()` are
+ * valid there and these tags are what this route expires.
  */
 import { revalidateTag } from "next/cache";
 import type { NextRequest } from "next/server";

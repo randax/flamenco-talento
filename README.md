@@ -144,6 +144,19 @@ Alt innhold redigeres i Sanity Studio på `https://<din-side>/studio` (lokalt:
    fjerne blokker (hero, om skolen, pedagog, timeplan, priser, galleri, nyheter,
    påmelding) under `page`-dokumentet som er merket som forside.
 
+### Bytte forside
+
+Hvert språk kan ha én forside (feltet **Forside**). Slik bytter du uten at
+forsiden er borte en periode:
+
+1. Fjern haken for **Forside** på den gamle forsiden. Ikke publiser ennå.
+2. Huk av **Forside** på den nye siden og publiser den. (Vises fortsatt en
+   feilmelding, gjør en liten endring på siden så sjekkes den på nytt.)
+3. Publiser den gamle siden.
+
+Lager du en oversettelse av forsiden, må du selv huke av **Forside** på
+oversettelsen.
+
 ### Legge til en nyhet
 
 1. Gå til **Nyheter** (`newsPost`) i Studio → **Create**.

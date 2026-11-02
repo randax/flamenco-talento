@@ -1,9 +1,11 @@
+import { cacheTag } from "next/cache";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { BlockRenderer, type PageBlock } from "@/components/blocks/BlockRenderer";
 import { SetAltHref, type AltHref } from "@/components/site/AltHrefContext";
-import { isLang, OG_LOCALE, type Lang } from "@/lib/i18n";
+import { isLang, LANGS, OG_LOCALE, type Lang } from "@/lib/i18n";
 import { absoluteUrl } from "@/lib/seo";
+import { pagePath } from "@/lib/links";
 import { client } from "@/sanity/lib/client";
 import { sanityFetch, typeTag } from "@/sanity/lib/live";
 import {
@@ -19,25 +21,31 @@ type PageData = {
   seoDescription: string | null;
   slug: string | null;
   language: string | null;
+  isFrontPage: boolean | null;
   blocks: PageBlock[] | null;
 };
 
-type Translation = { language: string | null; slug: string | null };
+type Translation = { language: string | null; slug: string | null; isFrontPage: boolean | null };
 
 type PageSlug = { slug: string; language: string };
 
-// The real Sanity project isn't provisioned yet (placeholder project id in
-// sanity/env.ts), so this fetch fails during `next build`. Fall back to an
-// empty list so the build stays green — pages render on demand and get
-// picked up by ISR once a real project exists.
+// Each locale's front page (`/no`, `/en`) plus every other page slug. The
+// roots are listed explicitly because Cache Components requires at least one
+// param set, even when the slug fetch fails. Nested slugs (`classes/beginners`)
+// become one segment per part; anything under `nyheter/` belongs to the news
+// routes, not this catch-all.
 export async function generateStaticParams() {
+  const roots = LANGS.map((lang) => ({ lang, slug: [] as string[] }));
   try {
     const pages = await client.fetch<PageSlug[]>(PAGE_SLUGS_QUERY);
-    return pages
-      .filter(({ slug }) => slug !== "nyheter")
-      .map(({ slug, language }) => ({ lang: language, slug: [slug] }));
+    return [
+      ...roots,
+      ...pages
+        .filter(({ slug }) => slug.split("/")[0] !== "nyheter")
+        .map(({ slug, language }) => ({ lang: language, slug: slug.split("/") })),
+    ];
   } catch {
-    return [];
+    return roots;
   }
 }
 
@@ -72,25 +80,24 @@ async function getPage(
 // `'use cache'` boundary to keep generateMetadata static under Cache Components.
 async function fetchTranslations(id: string): Promise<Translation[]> {
   "use cache";
+  // Tagged so the revalidate webhook refreshes language links when a
+  // translation is added or a translated slug changes.
+  cacheTag(typeTag("translation.metadata"), typeTag("page"));
   return (await client.fetch<Translation[]>(TRANSLATIONS_QUERY, { id })) ?? [];
 }
 
-// Maps each existing translation to its URL. Front-page translations serve at
-// the locale root (`/en`), not at their own slug (`/en/home`); sub-pages use
-// the translated slug. Only languages that actually have a translation are
-// included, so hreflang alternates are never emitted for non-existent pages.
-async function translatedUrls(
-  pageId: string,
-  isFrontPage: boolean,
-): Promise<Partial<Record<Lang, string>>> {
+// Maps each existing translation to its URL. A translation that is its
+// language's front page lives at the locale root (`/en`), not at its own slug
+// (`/en/home`, which redirects); other pages use the translated slug. Decided
+// per translation, since only one side of a pair may be a front page. Only
+// languages that actually have a translation are included, so hreflang
+// alternates are never emitted for non-existent pages.
+async function translatedUrls(pageId: string): Promise<Partial<Record<Lang, string>>> {
   const urls: Partial<Record<Lang, string>> = {};
   for (const tr of await fetchTranslations(pageId)) {
-    if (!isLang(tr.language ?? "")) continue;
-    if (isFrontPage) {
-      urls[tr.language as Lang] = `/${tr.language}`;
-    } else if (tr.slug) {
-      urls[tr.language as Lang] = `/${tr.language}/${tr.slug}`;
-    }
+    if (!tr.language || !isLang(tr.language)) continue;
+    const path = pagePath(tr.language, tr.slug, tr.isFrontPage);
+    if (path) urls[tr.language] = path;
   }
   return urls;
 }
@@ -113,7 +120,7 @@ export async function generateMetadata({
   // Only advertise hreflang alternates for languages that actually have a
   // translated page, resolved via the document-internationalization metadata.
   const languages: Record<string, string> = { [lang]: url };
-  const alts = await translatedUrls(page._id, !joinedSlug);
+  const alts = await translatedUrls(page._id);
   for (const [l, p] of Object.entries(alts)) {
     languages[l] = absoluteUrl(p);
   }
@@ -160,9 +167,19 @@ export default async function CatchAllPage({
     notFound();
   }
 
+  // The front page also matches its own slug (`/no/forside`); serve it only at
+  // the locale root so there is one URL per page. Temporary (307), not 308:
+  // editors can make another page the front page, and browsers cache a 308
+  // indefinitely. This is an HTTP redirect only because the route renders
+  // blocking (no Suspense/loading.tsx above it); add one and Next downgrades
+  // it to a client-side <meta refresh> redirect.
+  if (joinedSlug && page.isFrontPage) {
+    redirect(`/${lang}`);
+  }
+
   // Publish translated targets to the layout-level LanguageSwitcher so it points
   // at real translated slugs instead of a blind prefix swap.
-  const altHref: AltHref = await translatedUrls(page._id, !joinedSlug);
+  const altHref: AltHref = await translatedUrls(page._id);
 
   return (
     <main>
