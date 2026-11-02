@@ -3,7 +3,7 @@
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
-import { presentationTool } from "sanity/presentation";
+import { defineDocuments, presentationTool } from "sanity/presentation";
 import { documentInternationalization } from "@sanity/document-internationalization";
 import { apiVersion, dataset, projectId } from "./sanity/env";
 import { schemaTypes } from "./sanity/schemaTypes";
@@ -31,6 +31,26 @@ export default defineConfig({
         previewMode: {
           enable: "/api/draft-mode/enable",
         },
+      },
+      // Tells Presentation which document a previewed URL shows, so editors
+      // can open it next to the preview. Selecting a document is also what
+      // makes Presentation send the draft-edit refreshes the site listens for
+      // (components/site/DraftVisualEditing.tsx). Mirrors app/(site)/[lang].
+      resolve: {
+        mainDocuments: defineDocuments([
+          {
+            route: "/:lang",
+            filter: `_type == "page" && isFrontPage == true && language == $lang`,
+          },
+          {
+            route: "/:lang/nyheter/:slug",
+            filter: `_type == "newsPost" && slug.current == $slug && language == $lang`,
+          },
+          {
+            route: "/:lang/:slug",
+            filter: `_type == "page" && slug.current == $slug && language == $lang`,
+          },
+        ]),
       },
     }),
   ],

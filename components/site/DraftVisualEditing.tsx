@@ -1,5 +1,6 @@
 "use client";
 
+import { startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { VisualEditing } from "next-sanity/visual-editing";
 
@@ -13,7 +14,7 @@ export function DraftVisualEditing() {
   return (
     <VisualEditing
       refresh={() => {
-        router.refresh();
+        startTransition(() => router.refresh());
         // Same settle time next-sanity's default handler gives Presentation.
         return new Promise((resolve) => setTimeout(resolve, 1000));
       }}
