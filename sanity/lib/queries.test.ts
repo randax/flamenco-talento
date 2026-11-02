@@ -12,6 +12,19 @@ const dataset = [
     title: "Hjem",
     blocks: [
       { _key: "a", _type: "marqueeBlock", words: ["visible"] },
+      {
+        _key: "hero",
+        _type: "heroBlock",
+        images: [
+          {
+            _key: "p1",
+            _type: "image",
+            asset: { _ref: "image-abc-2400x1600-jpg", _type: "reference" },
+            hotspot: { x: 0.45, y: 0.55, width: 0.3, height: 0.3 },
+            alt: "Danser på scenegulv",
+          },
+        ],
+      },
       { _key: "b", _type: "marqueeBlock", words: ["hidden"], hidden: true },
       { _key: "c", _type: "marqueeBlock", words: ["shown"], hidden: false },
       { _key: "d", _type: "marqueeBlock", words: ["null"], hidden: null },
@@ -57,12 +70,12 @@ describe("page queries", () => {
 
   it("PAGE_QUERY leaves out hidden blocks", async () => {
     const page = await run(PAGE_QUERY, { slug: "hjem", lang: "no" });
-    expect(page.blocks.map((b) => b._key)).toEqual(["a", "c", "d", "f"]);
+    expect(page.blocks.map((b) => b._key)).toEqual(["a", "hero", "c", "d", "f"]);
   });
 
   it("FRONT_PAGE_QUERY leaves out hidden blocks", async () => {
     const page = await run(FRONT_PAGE_QUERY, { lang: "no" });
-    expect(page.blocks.map((b) => b._key)).toEqual(["a", "c", "d", "f"]);
+    expect(page.blocks.map((b) => b._key)).toEqual(["a", "hero", "c", "d", "f"]);
   });
 
   it("PAGE_SLUGS_QUERY leaves out front pages, which live at the locale root", async () => {
@@ -83,6 +96,21 @@ describe("page queries", () => {
     expect(await result.get()).toEqual([
       { language: "no", slug: "hjem", isFrontPage: true },
       { language: "en", slug: "home", isFrontPage: true },
+    ]);
+  });
+
+  it("PAGE_QUERY gives the hero its photos with hotspot and alt text", async () => {
+    const page = (await run(PAGE_QUERY, { slug: "hjem", lang: "no" })) as {
+      blocks: { _key: string; images?: unknown[] }[];
+    };
+    expect(page.blocks.find((b) => b._key === "hero")?.images).toEqual([
+      {
+        _key: "p1",
+        _type: "image",
+        asset: { _ref: "image-abc-2400x1600-jpg", _type: "reference" },
+        hotspot: { x: 0.45, y: 0.55, width: 0.3, height: 0.3 },
+        alt: "Danser på scenegulv",
+      },
     ]);
   });
 });

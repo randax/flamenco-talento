@@ -1,5 +1,5 @@
 import { PlayIcon } from "@sanity/icons";
-import { defineField, defineType } from "sanity";
+import { defineArrayMember, defineField, defineType } from "sanity";
 
 export const heroBlock = defineType({
   name: "heroBlock",
@@ -31,14 +31,39 @@ export const heroBlock = defineType({
       type: "text",
     }),
     defineField({
+      name: "images",
+      title: "Bilder",
+      description:
+        "Vises i svart-hvitt bak overskriften og glir over i hverandre. Sett fokuspunkt (hotspot) så danseren holdes i bildet. Uten bilder brukes videoen.",
+      type: "array",
+      options: { layout: "grid" },
+      of: [
+        defineArrayMember({
+          type: "image",
+          options: { hotspot: true },
+          fields: [
+            defineField({
+              name: "alt",
+              title: "Alternativ tekst",
+              description: "Kort beskrivelse for skjermlesere, f.eks. «Danser i blå kjole på scenen».",
+              type: "string",
+              validation: (Rule) => Rule.required(),
+            }),
+          ],
+        }),
+      ],
+    }),
+    defineField({
       name: "video",
       title: "Video",
+      description: "Brukes bare når det ikke er lagt til bilder.",
       type: "file",
       options: { accept: "video/mp4" },
     }),
     defineField({
       name: "poster",
       title: "Plakatbilde",
+      description: "Vises mens videoen lastes.",
       type: "image",
       options: { hotspot: true },
     }),
