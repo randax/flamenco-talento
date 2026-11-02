@@ -33,6 +33,8 @@ function usePrefersReducedMotion(): boolean {
   );
 }
 
+const assetId = (image: HeroImage) => ("_ref" in image.asset ? image.asset._ref : image.asset._id);
+
 /** False in the server render and during hydration, true afterwards. */
 function useHydrated(): boolean {
   return useSyncExternalStore(noSubscribe, () => true, () => false);
@@ -53,7 +55,7 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
   const reduceMotion = usePrefersReducedMotion();
   const hydrated = useHydrated();
   const [state, dispatch] = useReducer(slideshowReducer, images, initialSlideshow);
-  const [paused, setPaused] = useState(false);
+  const { paused } = state;
   const visible = images.filter((image) => !state.failed.includes(image._key));
   const slideshow = visible.length > 1 && !reduceMotion;
   const allFailed = visible.length === 0;
@@ -154,7 +156,7 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
           </div>
           <button
             type="button"
-            onClick={() => setPaused((p) => !p)}
+            onClick={() => dispatch(paused ? { type: "resume", photos: images } : { type: "pause" })}
             aria-label={paused ? t.playSlideshow : t.pauseSlideshow}
             className="p-1.5 text-white/60 hover:text-white focus-visible:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white transition-colors"
           >
@@ -171,8 +173,12 @@ export function Hero({ block, lang }: { block: HeroBlock; lang: Lang }) {
   // An image whose upload hasn't finished has no asset yet. Memoised so live
   // content refreshes don't restart the slideshow timer.
   const images = useMemo(() => (block.images ?? []).filter((image) => image.asset), [block.images]);
-  const [photosFailed, setPhotosFailed] = useState(false);
-  const onAllFailed = useCallback(() => setPhotosFailed(true), []);
+  // Which photos these are. A new set (an editor swapping photos in a live
+  // refresh) starts the slideshow afresh and clears an earlier "all failed".
+  const photoSet = images.map((image) => `${image._key}:${assetId(image)}`).join(",");
+  const [failedSet, setFailedSet] = useState<string | null>(null);
+  const onAllFailed = useCallback(() => setFailedSet(photoSet), [photoSet]);
+  const photosFailed = failedSet === photoSet;
 
   return (
     <section
@@ -182,7 +188,7 @@ export function Hero({ block, lang }: { block: HeroBlock; lang: Lang }) {
       {/* Full-bleed photos, or the cinematic video when there are none (or none load) */}
       <div className="absolute inset-0 z-0 bg-flamenco-dark">
         {images.length > 0 && !photosFailed ? (
-          <HeroPhotos images={images} lang={lang} onAllFailed={onAllFailed} />
+          <HeroPhotos key={photoSet} images={images} lang={lang} onAllFailed={onAllFailed} />
         ) : (
           <motion.video
             initial={{

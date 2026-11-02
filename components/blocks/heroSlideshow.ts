@@ -16,17 +16,28 @@ export type SlideshowState = {
   loaded: string[];
   /** The timer fired before the next photo had loaded. */
   waiting: boolean;
+  /** Paused by the visitor: nothing advances until resumed. */
+  paused: boolean;
 };
 
 export type SlideshowAction =
   | { type: "tick"; photos: Photo[] }
   | { type: "loaded"; id: string; photos: Photo[] }
-  | { type: "failed"; key: string; photos: Photo[] };
+  | { type: "failed"; key: string; photos: Photo[] }
+  | { type: "pause" }
+  | { type: "resume"; photos: Photo[] };
 
 export const slideId = (slide: Slide) => `${slide.key}-${slide.seq}`;
 
 export function initialSlideshow(photos: Photo[]): SlideshowState {
-  return { current: { key: photos[0]?._key ?? "", seq: 0 }, previous: null, failed: [], loaded: [], waiting: false };
+  return {
+    current: { key: photos[0]?._key ?? "", seq: 0 },
+    previous: null,
+    failed: [],
+    loaded: [],
+    waiting: false,
+    paused: false,
+  };
 }
 
 /** The photo after the current one that hasn't failed, or null if none. */
@@ -45,8 +56,9 @@ function advance(state: SlideshowState, next: Slide): SlideshowState {
   return { ...state, previous: state.current, current: next, waiting: false, loaded: state.loaded.filter((id) => id === slideId(next)) };
 }
 
-/** Advance if the next photo is ready; otherwise wait for it. */
+/** Advance if the next photo is ready (and not paused); otherwise wait. */
 function advanceWhenReady(state: SlideshowState, photos: Photo[]): SlideshowState {
+  if (state.paused) return state;
   const next = nextSlide(state, photos);
   if (!next) return { ...state, waiting: false };
   return state.loaded.includes(slideId(next)) ? advance(state, next) : { ...state, waiting: true };
@@ -66,6 +78,13 @@ export function slideshowReducer(state: SlideshowState, action: SlideshowAction)
       const next = { ...state, failed: [...state.failed, action.key] };
       // A broken current photo is replaced as soon as the next one is ready.
       return state.waiting || action.key === state.current.key ? advanceWhenReady(next, action.photos) : next;
+    }
+    case "pause":
+      return { ...state, paused: true };
+    case "resume": {
+      const next = { ...state, paused: false };
+      // If the timer already fired, show the next photo as soon as it's ready.
+      return state.waiting ? advanceWhenReady(next, action.photos) : next;
     }
   }
 }
