@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Keep pinned action SHAs current
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      production-dependencies:
+        dependency-type: production
+      development-dependencies:
+        dependency-type: development
+    cooldown:
+      semver-patch-days: 3
+    # These rules apply to security updates too: a CVE fixed only in a
+    # suppressed version raises no PR, so check Dependabot alerts when lifting.
+    ignore:
+      # typescript-eslint 8 (via eslint-config-next) throws at import on
+      # TypeScript >= 7, which breaks `pnpm lint`. Lift once it supports TS 7.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
