@@ -72,7 +72,7 @@ Recorded per-decision in the [ARD](./ARD.md); headline rejections: fixed-section
 
 1. Implement per the [implementation plan](./superpowers/plans/2026-07-12-flamenco-talento-website.md) (12 tasks, each independently verified and committed).
 2. Seed the dataset with design content (NO + EN).
-3. Deploy to Vercel; configure env vars, Sanity CORS origin, the revalidation webhook, and `SANITY_STUDIO_PREVIEW_ORIGIN`.
+3. Deploy to Vercel; configure env vars, Sanity CORS origin, and the revalidation webhook.
 4. Handover: Norwegian editor guide in the README; school replaces placeholder media/copy at their own pace.
 
 No migration concerns (greenfield). Rollback = revert deploy; content lives safely in Sanity regardless.

@@ -132,10 +132,10 @@ Alt innhold redigeres i Sanity Studio på `https://<din-side>/studio` (lokalt:
 
 1. Åpne **Presentation** (øye-ikonet) i toppmenyen i Studio. Da ser du nettsiden
    ved siden av redigeringsfeltene.
-2. Klikk på et element på siden (overskrift, tekst, bilde) for å hoppe rett til
-   feltet som styrer det ("click-to-edit").
-3. Endringer vises umiddelbart i forhåndsvisningen. De blir **først synlige for
-   publikum når du trykker _Publish_** nederst.
+2. Velg dokumentet du vil endre i listen til venstre.
+3. Endringer vises i forhåndsvisningen etter et øyeblikk. De blir **først synlige
+   for publikum når du trykker _Publish_** nederst. Forhåndsvisningen viser alltid
+   utkast (drafts), også om du bytter perspektiv øverst i Presentation.
 4. Forsiden er bygget av blokker. Du kan endre rekkefølge, legge til eller
    fjerne blokker (hero, om skolen, pedagog, timeplan, priser, galleri, nyheter,
    påmelding) under `page`-dokumentet som er merket som forside.

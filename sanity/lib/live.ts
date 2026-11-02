@@ -27,12 +27,16 @@ type FetchOptions = Omit<Parameters<typeof liveFetch>[0], "perspective" | "stega
  * Presentation tool) and published content otherwise. Call it inside a
  * `'use cache'` boundary: Next lets `draftMode()` be read there, and re-runs
  * cached scopes on every request while Draft Mode is on, so drafts are never
- * cached. Stega (click-to-edit overlays) stays off: it would encode CMS strings
- * the site compares and groups on.
+ * cached. Always `drafts` in Draft Mode: Presentation's perspective switcher
+ * (published / content releases) is not honoured, because the cookie that
+ * carries it can't be read inside `'use cache'`. Stega (click-to-edit
+ * overlays) stays off: it would encode CMS strings the site compares on.
  */
 export async function sanityFetch(options: FetchOptions) {
   const { isEnabled } = await draftMode();
-  return liveFetch({ ...options, perspective: isEnabled ? "drafts" : "published", stega: false });
+  // Drafts need the token; without one (local dev), fall back to published.
+  const perspective = isEnabled && token ? "drafts" : "published";
+  return liveFetch({ ...options, perspective, stega: false });
 }
 
 /**
