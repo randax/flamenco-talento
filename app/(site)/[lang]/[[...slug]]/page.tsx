@@ -28,9 +28,10 @@ type Translation = { language: string | null; slug: string | null };
 type PageSlug = { slug: string; language: string };
 
 // Each locale's front page (`/no`, `/en`) plus every other page slug. The
-// roots are listed explicitly: Cache Components requires at least one param
-// set, and the Sanity fetch can fail during `next build` (pages then render on
-// demand). Nested slugs (`classes/beginners`) become one segment per part.
+// roots are listed explicitly because Cache Components requires at least one
+// param set, even when the slug fetch fails. Nested slugs (`classes/beginners`)
+// become one segment per part; anything under `nyheter/` belongs to the news
+// routes, not this catch-all.
 export async function generateStaticParams() {
   const roots = LANGS.map((lang) => ({ lang, slug: [] as string[] }));
   try {
@@ -38,7 +39,7 @@ export async function generateStaticParams() {
     return [
       ...roots,
       ...pages
-        .filter(({ slug }) => slug !== "nyheter")
+        .filter(({ slug }) => slug.split("/")[0] !== "nyheter")
         .map(({ slug, language }) => ({ lang: language, slug: slug.split("/") })),
     ];
   } catch {
@@ -166,7 +167,9 @@ export default async function CatchAllPage({
   }
 
   // The front page also matches its own slug (`/no/forside`); serve it only at
-  // the locale root so there is one URL per page.
+  // the locale root so there is one URL per page. This is an HTTP 308 only
+  // because the route renders blocking (no Suspense/loading.tsx above it); add
+  // one and Next downgrades it to a client-side <meta refresh> redirect.
   if (joinedSlug && page.isFrontPage) {
     permanentRedirect(`/${lang}`);
   }

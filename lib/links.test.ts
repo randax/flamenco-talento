@@ -32,9 +32,12 @@ describe("languageHref", () => {
     expect(languageHref("/en/nyheter", "no")).toBe("/no/nyheter");
   });
 
-  it("falls back to the other language's front page for CMS slugs", () => {
-    // Slugs differ per language, so a prefix swap would 404.
-    expect(languageHref("/en/nyheter/autumn-performance-in-the-works", "no")).toBe("/no");
+  it("falls back to the other language's news index for news posts", () => {
+    // Post slugs differ per language, so a prefix swap would 404.
+    expect(languageHref("/en/nyheter/autumn-performance-in-the-works", "no")).toBe("/no/nyheter");
+  });
+
+  it("falls back to the other language's front page for CMS page slugs", () => {
     expect(languageHref("/en/about", "no", {})).toBe("/no");
   });
 

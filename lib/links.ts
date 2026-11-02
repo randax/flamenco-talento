@@ -17,9 +17,9 @@ const SHARED_PATHS = new Set(["", "/nyheter"]);
 /**
  * Target of the language switcher. A page's published translation wins (see
  * AltHrefContext), and the current language stays on the current page.
- * Otherwise swap the locale only on routes every language
- * has; CMS slugs differ per language, so send those to the front page instead
- * of guessing a URL that may not exist.
+ * Otherwise swap the locale only on routes every language has. CMS slugs
+ * differ per language, so rather than guess a URL that may not exist, send news
+ * posts to the news index and other pages to the front page.
  */
 export function languageHref(
   pathname: string,
@@ -30,5 +30,7 @@ export function languageHref(
   const [, current = ""] = pathname.split("/");
   if (current === target) return pathname;
   const rest = pathname.replace(/^\/[^/]+/, "").replace(/\/$/, "");
-  return SHARED_PATHS.has(rest) ? `/${target}${rest}` : `/${target}`;
+  if (SHARED_PATHS.has(rest)) return `/${target}${rest}`;
+  // A news post without a known translation: the news index is the closest page.
+  return rest.startsWith("/nyheter/") ? `/${target}/nyheter` : `/${target}`;
 }

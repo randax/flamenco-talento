@@ -24,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const pages = await client.fetch<Slug[]>(PAGE_SLUGS_QUERY);
     for (const { slug, language } of pages) {
-      if (!slug || !language || slug === "nyheter") continue;
+      if (!slug || !language || slug.split("/")[0] === "nyheter") continue;
       entries.push({
         url: absoluteUrl(`/${language}/${slug}`),
         changeFrequency: "monthly",
