@@ -9,10 +9,16 @@
  * front pages. `images/` holds the original photos and is not committed.
  * `pnpm seed` replaces the front pages, so re-run this afterwards.
  *
- *   pnpm hero-images          # show what would happen
- *   pnpm hero-images --write  # do it
+ * Pages whose hero already has photos are left alone, so editors' changes
+ * survive a re-run; `--replace` overwrites them. Drafts of the front pages
+ * get the photos too.
+ *
+ *   pnpm hero-images                      # show what would happen
+ *   pnpm hero-images --write              # add photos where there are none
+ *   pnpm hero-images --write --replace    # overwrite existing photos
  */
 
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "next-sanity";
@@ -20,6 +26,7 @@ import { createClient } from "next-sanity";
 process.loadEnvFile(resolve(process.cwd(), ".env.local"));
 
 const WRITE = process.argv.includes("--write");
+const REPLACE = process.argv.includes("--replace");
 
 type Lang = "no" | "en";
 
@@ -60,12 +67,18 @@ if (!projectId || !dataset || !token) {
   throw new Error("Set NEXT_PUBLIC_SANITY_PROJECT_ID, NEXT_PUBLIC_SANITY_DATASET and SANITY_API_WRITE_TOKEN in .env.local");
 }
 
-const client = createClient({ projectId, dataset, token, apiVersion: "2026-07-01", useCdn: false });
+// "raw" so drafts are visible too: the API's default perspective for this
+// version is "published", which would hide an editor's unpublished draft.
+const client = createClient({ projectId, dataset, token, apiVersion: "2026-07-01", useCdn: false, perspective: "raw" });
 
+// Matched by content (Sanity's own sha1hash), not filename, so a different
+// photo with the same name is never reused and a replaced photo is uploaded.
 async function assetFor(file: string): Promise<string> {
+  const bytes = readFileSync(resolve(process.cwd(), "images", file));
+  const hash = createHash("sha1").update(bytes).digest("hex");
   const existing = await client.fetch<string | null>(
-    `*[_type == "sanity.imageAsset" && originalFilename == $file][0]._id`,
-    { file },
+    `*[_type == "sanity.imageAsset" && sha1hash == $hash][0]._id`,
+    { hash },
   );
   if (existing) {
     console.log(`  ↺ reusing ${file} (${existing})`);
@@ -73,47 +86,55 @@ async function assetFor(file: string): Promise<string> {
   }
   if (!WRITE) {
     console.log(`  ↑ would upload ${file}`);
-    return `image-DRYRUN-${file}`;
+    return `image-DRYRUN-${hash}`;
   }
-  const asset = await client.assets.upload("image", readFileSync(resolve(process.cwd(), "images", file)), { filename: file });
+  const asset = await client.assets.upload("image", bytes, { filename: file });
   console.log(`  ↑ uploaded ${file} (${asset._id})`);
   return asset._id;
 }
 
 async function main() {
-  console.log(WRITE ? "Uploading and patching…" : "Dry run (pass --write to apply)");
+  console.log(
+    WRITE ? `Uploading and patching${REPLACE ? " (replacing existing photos)" : ""}…` : "Dry run (pass --write to apply)",
+  );
   const assets: string[] = [];
   for (const photo of PHOTOS) assets.push(await assetFor(photo.file));
 
-  const pages = await client.fetch<{ _id: string; language: Lang; heroKey: string | null; hasDraft: boolean }[]>(
-    `*[_type == "page" && isFrontPage == true && !(_id in path("drafts.**"))]{
+  // Published front pages and their drafts, so publishing a draft later
+  // doesn't drop the photos.
+  const docs = await client.fetch<{ _id: string; language: Lang; heroKey: string | null; photos: number }[]>(
+    `*[_type == "page" && isFrontPage == true && !(_id in path("versions.**"))]{
       _id, language,
       "heroKey": blocks[_type == "heroBlock"][0]._key,
-      "hasDraft": defined(*[_id == "drafts." + ^._id][0])
+      "photos": count(blocks[_type == "heroBlock"][0].images)
     }`,
   );
 
-  for (const page of pages) {
-    if (!page.heroKey) {
-      console.log(`  – ${page._id}: no hero block, skipped`);
+  const transaction = client.transaction();
+  let changes = 0;
+  for (const doc of docs) {
+    if (!doc.heroKey) {
+      console.log(`  – ${doc._id}: no hero block, skipped`);
       continue;
     }
-    if (page.hasDraft) console.warn(`  ! ${page._id} has an unpublished draft; only the published page is updated`);
+    // Editors may have changed photos, hotspots or alt text since: keep them
+    // unless asked to replace.
+    if (doc.photos > 0 && !REPLACE) {
+      console.log(`  – ${doc._id}: already has ${doc.photos} photos, kept (pass --replace to overwrite)`);
+      continue;
+    }
     const images = PHOTOS.map((photo, k) => ({
       _key: `photo-${k + 1}`,
       _type: "image",
       asset: { _type: "reference", _ref: assets[k] },
       hotspot: { _type: "sanity.imageHotspot", ...photo.hotspot, width: 0.4, height: 0.4 },
-      alt: photo.alt[page.language],
+      alt: photo.alt[doc.language],
     }));
-    const path = `blocks[_key=="${page.heroKey}"].images`;
-    if (WRITE) {
-      await client.patch(page._id).set({ [path]: images }).commit();
-      console.log(`  ✓ ${page._id} (${page.language}): ${images.length} photos`);
-    } else {
-      console.log(`  · would set ${images.length} photos on ${page._id} (${page.language}) at ${path}`);
-    }
+    transaction.patch(doc._id, (patch) => patch.set({ [`blocks[_key=="${doc.heroKey}"].images`]: images }));
+    changes++;
+    console.log(`  ${WRITE ? "✓" : "·"} ${doc._id} (${doc.language}): ${WRITE ? "" : "would set "}${images.length} photos`);
   }
+  if (WRITE && changes > 0) await transaction.commit();
 }
 
 main().catch((err) => {

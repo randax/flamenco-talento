@@ -1,21 +1,23 @@
 "use client";
 
 import React, { useEffect, useState, useSyncExternalStore } from "react";
-import Image from "next/image";
+import Image, { type ImageLoader } from "next/image";
 import { stegaClean } from "next-sanity";
-import { motion, MotionConfig } from "@/components/site/Motion";
+import { motion } from "@/components/site/Motion";
 import { hotspotPosition, urlFor } from "@/sanity/lib/image";
 import type { HeroBlock, HeroImage } from "@/components/blocks/types";
 import { SECTION_ID } from "@/components/blocks/sections";
 
 const SLIDE_S = 6;
 const FADE_S = 1.6;
+const ZOOM = 1.1;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+const noSubscribe = () => () => {};
 
-// The user's reduced-motion preference, used to pause the slideshow. Not
-// framer's useReducedMotion: that reads the preference during the first
-// render, so the client's first render differs from the server's (hydration
-// error). This hydrates as "no preference", then updates.
+// The user's reduced-motion preference. Not framer's useReducedMotion: that
+// reads the preference during the first render, so the client's first render
+// differs from the server's (hydration error). This hydrates as "no
+// preference", then updates.
 function usePrefersReducedMotion(): boolean {
   return useSyncExternalStore(
     (onChange) => {
@@ -28,17 +30,23 @@ function usePrefersReducedMotion(): boolean {
   );
 }
 
-// Full-bleed photos that dissolve into each other, each drifting slowly in
-// (Ken Burns), in black and white like the video. A single photo is a still;
-// with reduced motion the slideshow pauses on the first photo and
-// MotionConfig drops the zoom.
+/** False in the server render and during hydration, true afterwards. */
+function useHydrated(): boolean {
+  return useSyncExternalStore(noSubscribe, () => true, () => false);
+}
+
+// Full-bleed photos that dissolve into each other, each slowly pushing in
+// (Ken Burns), in black and white like the video. Every photo starts at its
+// natural size, so the server HTML is the same still frame for everyone. A
+// single photo stays still; with reduced motion the hero shows the first
+// photo, still.
 function HeroPhotos({ images }: { images: HeroImage[] }) {
   const reduceMotion = usePrefersReducedMotion();
-  const slideshow = images.length > 1 && !reduceMotion;
-  const zoom = images.length > 1 ? 1.12 : 1;
+  const hydrated = useHydrated();
   const n = images.length;
+  const slideshow = n > 1 && !reduceMotion;
   const [step, setStep] = useState(0);
-  const current = step % n;
+  const current = slideshow ? step % n : 0;
 
   useEffect(() => {
     if (!slideshow) return;
@@ -46,35 +54,45 @@ function HeroPhotos({ images }: { images: HeroImage[] }) {
     return () => clearInterval(timer);
   }, [slideshow]);
 
-  // Only the photo on screen, the one fading out and the next one are
-  // mounted, so visitors don't download every photo up front.
-  const nearby = (k: number) =>
-    k === current || (slideshow && (k === (step + 1) % n || (step > 0 && k === (step - 1) % n)));
+  // Mounted: the photo on screen, the one fading out, and (once the page is
+  // interactive, so it doesn't compete with the first photo) the next one.
+  const mounted = (k: number) =>
+    k === current ||
+    (slideshow && hydrated && k === (step + 1) % n) ||
+    (slideshow && step > 0 && k === (step - 1) % n);
 
   return (
-    <MotionConfig reducedMotion="user">
+    <>
       {images.map((image, k) => {
-        if (!nearby(k)) return null;
+        if (!mounted(k)) return null;
         const isCurrent = k === current;
+        // Sanity's CDN resizes and picks the format, so Next doesn't re-encode.
+        const loader: ImageLoader = ({ width, quality }) =>
+          urlFor(image).width(width).quality(quality ?? 75).auto("format").url();
         return (
           <motion.div
             key={image._key}
             aria-hidden={!isCurrent}
             className="absolute inset-0"
-            initial={{ opacity: isCurrent ? 1 : 0, scale: zoom }}
-            animate={{ opacity: isCurrent ? 1 : 0, scale: isCurrent ? 1 : zoom }}
+            initial={{ opacity: isCurrent ? 1 : 0, scale: 1 }}
+            animate={{ opacity: isCurrent ? 1 : 0, scale: isCurrent && slideshow ? ZOOM : 1 }}
             transition={{
               opacity: { duration: FADE_S },
-              // Drift in while showing; jump back only once faded out.
-              scale: isCurrent ? { duration: SLIDE_S + FADE_S, ease: "linear" } : { delay: FADE_S, duration: 0 },
+              // Push in while showing; reset only once faded out (or at once
+              // if reduced motion is switched on).
+              scale: isCurrent && slideshow
+                ? { duration: SLIDE_S + FADE_S, ease: "linear" }
+                : { delay: slideshow ? FADE_S : 0, duration: 0 },
             }}
           >
             <Image
-              src={urlFor(image).width(2400).url()}
+              loader={loader}
+              src={urlFor(image).url()}
               alt={image.alt ?? ""}
               fill
-              priority={k === 0}
               sizes="100vw"
+              loading={k === 0 ? "eager" : "lazy"}
+              fetchPriority={k === 0 ? "high" : "auto"}
               className="object-cover grayscale"
               style={{ objectPosition: hotspotPosition(image) }}
             />
@@ -91,7 +109,7 @@ function HeroPhotos({ images }: { images: HeroImage[] }) {
           ))}
         </div>
       )}
-    </MotionConfig>
+    </>
   );
 }
 

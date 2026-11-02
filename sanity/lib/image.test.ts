@@ -20,4 +20,22 @@ describe("hotspotPosition", () => {
       }),
     ).toBe("50% 50%");
   });
+
+  it("keeps a hotspot outside the crop at the nearest edge", () => {
+    expect(
+      hotspotPosition({
+        hotspot: { x: 0.95, y: 0.05, width: 0.1, height: 0.1 },
+        crop: { left: 0, right: 0.2, top: 0.1, bottom: 0 },
+      }),
+    ).toBe("100% 0%");
+  });
+
+  it("centres an axis the crop has squeezed to nothing", () => {
+    expect(
+      hotspotPosition({
+        hotspot: { x: 0.5, y: 0.5, width: 0.1, height: 0.1 },
+        crop: { left: 0.5, right: 0.5, top: 0, bottom: 0 },
+      }),
+    ).toBe("50% 50%");
+  });
 });
