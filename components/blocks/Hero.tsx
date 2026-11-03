@@ -70,20 +70,26 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
     if (fallBack) onAllFailed();
   }, [fallBack, onAllFailed]);
 
-  // Time left before the next advance; kept across pauses.
+  // Time left before the next advance; kept across pauses and across the
+  // effect re-running (e.g. returning to a page Next kept in the background).
+  // Only a new current photo starts a fresh six seconds.
   const remaining = useRef(SLIDE_S * 1000);
+  const seq = state.current.seq;
+  const { waiting } = state;
+  const timedSeq = useRef(seq);
   useEffect(() => {
-    remaining.current = SLIDE_S * 1000;
-  }, [state.current.seq]);
-  useEffect(() => {
-    if (!slideshow || paused || state.waiting) return;
+    if (!slideshow || paused || waiting) return;
+    if (timedSeq.current !== seq) {
+      timedSeq.current = seq;
+      remaining.current = SLIDE_S * 1000;
+    }
     const started = performance.now();
     const timer = setTimeout(() => dispatch({ type: "tick", photos: images }), remaining.current);
     return () => {
       clearTimeout(timer);
       remaining.current = Math.max(0, remaining.current - (performance.now() - started));
     };
-  }, [slideshow, paused, state.waiting, state.current.seq, images]);
+  }, [slideshow, paused, waiting, seq, images]);
 
   if (fallBack) return null;
   const next = slideshow && hydrated && !allFailed ? nextSlide(state, images) : null;
