@@ -63,9 +63,12 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
   const slideshow = images.length > 1 && !reduceMotion;
   const allFailed = visible.length === 0;
 
+  // Switch to the video only while playing: a visitor who paused keeps the
+  // (now empty) hero and its play button, and gets the video on resume.
+  const fallBack = allFailed && !paused;
   useEffect(() => {
-    if (allFailed) onAllFailed();
-  }, [allFailed, onAllFailed]);
+    if (fallBack) onAllFailed();
+  }, [fallBack, onAllFailed]);
 
   // Time left before the next advance; kept across pauses.
   const remaining = useRef(SLIDE_S * 1000);
@@ -82,15 +85,17 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
     };
   }, [slideshow, paused, state.waiting, state.current.seq, images]);
 
-  if (allFailed) return null;
-  const next = slideshow && hydrated ? nextSlide(state, images) : null;
-  const slides: { slide: Slide; role: "previous" | "current" | "next" }[] = slideshow
-    ? [
-        ...(state.previous ? [{ slide: state.previous, role: "previous" as const }] : []),
-        { slide: state.current, role: "current" as const },
-        ...(next ? [{ slide: next, role: "next" as const }] : []),
-      ]
-    : [{ slide: { key: visible[0]._key, seq: 0 }, role: "current" }];
+  if (fallBack) return null;
+  const next = slideshow && hydrated && !allFailed ? nextSlide(state, images) : null;
+  const slides: { slide: Slide; role: "previous" | "current" | "next" }[] = allFailed
+    ? []
+    : slideshow
+      ? [
+          ...(state.previous ? [{ slide: state.previous, role: "previous" as const }] : []),
+          { slide: state.current, role: "current" as const },
+          ...(next ? [{ slide: next, role: "next" as const }] : []),
+        ]
+      : [{ slide: { key: visible[0]._key, seq: 0 }, role: "current" }];
 
   return (
     <>
