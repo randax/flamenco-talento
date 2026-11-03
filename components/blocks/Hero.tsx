@@ -35,6 +35,18 @@ function usePrefersReducedMotion(): boolean {
 
 const assetId = (image: HeroImage) => ("_ref" in image.asset ? image.asset._ref : image.asset._id);
 
+// `sizes` for a photo that covers the full-screen hero. On screens narrower
+// than the photo's (cropped) aspect ratio, object-cover scales it to the
+// screen's height, so it renders wider than the viewport; asking for 100vw
+// there would download a photo far too small and make it soft.
+function coverSizes(image: HeroImage): string {
+  const [w, h] = assetId(image).match(/-(\d+)x(\d+)-/)?.slice(1).map(Number) ?? [];
+  if (!w || !h) return "100vw";
+  const crop = image.crop;
+  const ratio = (w * (1 - (crop?.left ?? 0) - (crop?.right ?? 0))) / (h * (1 - (crop?.top ?? 0) - (crop?.bottom ?? 0)));
+  return `(max-aspect-ratio: ${Math.round(ratio * 1000)}/1000) ${Math.ceil(ratio * 100)}vh, 100vw`;
+}
+
 /** False in the server render and during hydration, true afterwards. */
 function useHydrated(): boolean {
   return useSyncExternalStore(noSubscribe, () => true, () => false);
@@ -101,7 +113,9 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
           { slide: state.current, role: "current" as const },
           ...(next ? [{ slide: next, role: "next" as const }] : []),
         ]
-      : [{ slide: { key: visible[0]._key, seq: 0 }, role: "current" }];
+      : // Still: the first working photo, or while paused the one showing,
+        // so nothing changes until the visitor resumes.
+        [{ slide: paused ? state.current : { key: visible[0]._key, seq: 0 }, role: "current" }];
 
   return (
     <>
@@ -148,7 +162,7 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
                 src={urlFor(image).url()}
                 alt={image.alt ?? ""}
                 fill
-                sizes="100vw"
+                sizes={coverSizes(image)}
                 loading={slide.seq === 0 ? "eager" : "lazy"}
                 fetchPriority={slide.seq === 0 ? "high" : "auto"}
                 // A photo that broke before hydration still reports onLoad,
