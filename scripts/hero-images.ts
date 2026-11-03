@@ -102,7 +102,7 @@ async function main() {
 
   // Published front pages and their drafts, so publishing a draft later
   // doesn't drop the photos.
-  const docs = await client.fetch<{ _id: string; _rev: string; language: Lang; heroKey: string | null; photos: number }[]>(
+  const docs = await client.fetch<{ _id: string; _rev: string; language: Lang; heroKey: string | null; photos: number | null }[]>(
     `*[_type == "page" && isFrontPage == true && !(_id in path("versions.**"))]{
       _id, _rev, language,
       "heroKey": blocks[_type == "heroBlock"][0]._key,
@@ -119,7 +119,7 @@ async function main() {
     }
     // Editors may have changed photos, hotspots or alt text since: keep them
     // unless asked to replace.
-    if (doc.photos > 0 && !REPLACE) {
+    if (doc.photos && !REPLACE) {
       console.log(`  – ${doc._id}: already has ${doc.photos} photos, kept (pass --replace to overwrite)`);
       continue;
     }
