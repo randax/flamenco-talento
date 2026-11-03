@@ -156,12 +156,14 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
         );
       })}
       {slideshow && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4">
-          <div aria-hidden className="flex gap-2">
+        // Kept inside the hero's width: with many photos the lines shrink, so
+        // the pause button never ends up off-screen.
+        <div className="absolute bottom-8 inset-x-6 z-10 flex items-center justify-center gap-4">
+          <div aria-hidden className="flex min-w-0 gap-2">
             {visible.map((image) => (
               <span
                 key={image._key}
-                className={`h-px w-10 transition-colors duration-700 ${image._key === state.current.key ? "bg-white" : "bg-white/25"}`}
+                className={`h-px w-10 min-w-1 transition-colors duration-700 ${image._key === state.current.key ? "bg-white" : "bg-white/25"}`}
               />
             ))}
           </div>
@@ -169,7 +171,7 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
             type="button"
             onClick={() => dispatch(paused ? { type: "resume", photos: images } : { type: "pause" })}
             aria-label={paused ? t.playSlideshow : t.pauseSlideshow}
-            className="p-1.5 text-white/60 hover:text-white focus-visible:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white transition-colors"
+            className="shrink-0 p-1.5 text-white/60 hover:text-white focus-visible:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white transition-colors"
           >
             {paused ? <Play size={14} /> : <Pause size={14} />}
           </button>
