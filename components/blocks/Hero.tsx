@@ -160,12 +160,14 @@ function HeroPhotos({ images, lang, onAllFailed }: { images: HeroImage[]; lang: 
           </div>
         );
       })}
-      {slideshow && (
-        // Kept inside the hero's width: with many photos the lines shrink, so
-        // the pause button never ends up off-screen.
-        <div className="absolute bottom-8 inset-x-6 z-10 flex items-center justify-center gap-4">
+      {/* Shown whenever paused too, so a visitor can always resume (even if
+          reduced motion was switched on meanwhile). */}
+      {(slideshow || paused) && (
+        // Above the hero's text (z-20 vs z-10) so it stays clickable on short
+        // screens, and inside its width so many photos never push it off.
+        <div className="absolute bottom-8 inset-x-6 z-20 flex items-center justify-center gap-4">
           <div aria-hidden className="flex min-w-0 gap-2">
-            {visible.map((image) => (
+            {(slideshow ? visible : []).map((image) => (
               <span
                 key={image._key}
                 className={`h-px w-10 min-w-1 transition-colors duration-700 ${image._key === state.current.key ? "bg-white" : "bg-white/25"}`}
@@ -241,8 +243,9 @@ export function Hero({ block, lang }: { block: HeroBlock; lang: Lang }) {
       id={SECTION_ID.heroBlock}
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
     >
-      {/* Full-bleed photos, or the cinematic video */}
-      <div className="absolute inset-0 z-0 bg-flamenco-dark">
+      {/* Full-bleed photos, or the cinematic video. No z-index here, so the
+          slideshow controls inside can sit above the text. */}
+      <div className="absolute inset-0 bg-flamenco-dark">
         <HeroBackground
           key={photoSet}
           images={images}
@@ -256,7 +259,8 @@ export function Hero({ block, lang }: { block: HeroBlock; lang: Lang }) {
         <div className="absolute inset-0 bg-gradient-to-b from-flamenco-dark/40 via-transparent to-flamenco-dark/40"></div>
       </div>
 
-      <div className="container relative z-10 mx-auto px-6 md:px-12 text-center flex flex-col items-center">
+      {/* pb-16 keeps the buttons clear of the slideshow controls. */}
+      <div className="container relative z-10 mx-auto px-6 md:px-12 pb-16 text-center flex flex-col items-center">
         <motion.div
           initial={{
             opacity: 0,
